@@ -1,0 +1,4 @@
+git init
+Initialized empty Git repository in /home/jdgomezz/Agotado_en_gondola/.git/
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ git remote add origin https://github.com/jdgomezz/Modelo_tendencia_r.git
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ git add -A

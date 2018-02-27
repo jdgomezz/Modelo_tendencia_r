@@ -1,0 +1,205 @@
+select def.dependenciacd,
+	       def.subzonacd,
+		   def.ciudadcd,
+	       def.Pluid,
+		   def.plucd,
+		   def.articuloid,
+		   def.subcategoriacd,
+		   def.categoriacd,
+		   def.sublineacd,
+		   def.subdireccioncd,
+		   def.direccioncd,
+		   def.Fecha,
+		   def.dia,
+		   def.semana,
+		   def.mes,
+		   def.anio,
+		   def.hora,
+		   def.clasificacionABC,
+		   def.SaleFactor,
+		   def.UnidadesVendidas,
+		   def.undsReales,
+		   def.unidadesAcum,
+		   def.undsAdim,
+		   def.corte
+	from (select x.dependenciacd,
+			       z.subzonacd,
+				   z.ciudadcd,
+			       x.Pluid,
+				   z.plucd,
+				   z.articuloid,
+				   z.subcategoriacd,
+				   z.categoriacd,
+				   z.sublineacd,
+				   z.subdireccioncd,
+				   z.direccioncd,
+				   z.Fecha,
+				   z.dia,
+				   z.semana,
+				   z.mes,
+				   z.anio,
+				   z.hora,
+				   z.clasificacionABC,
+				   z.SaleFactor,
+				   z.UnidadesVendidas,
+				   z.undsReales,
+				   z.unidadesAcum,
+				   z.undsAdim,
+				   max(x.corteMin) as corte
+		 from ( select master.dependenciacd,
+		        master.pluid,
+				master.counts,
+				master.registros,
+				master.TotUnidades,
+				master.vUnds,
+				master.PrimeraVenta,
+				master.UltimaVenta,
+				master.vida_producto,
+				master.proporcion,
+			    master.decil,
+				master.corteMax,
+				master.corteMin,
+				master.corteMean
+		from (select  data.dependenciacd,
+		            data.pluid,
+					count(data.pluid) as counts,
+					filtro_nums.registros,
+					filtro_nums.TotUnidades,
+		            filtro_nums.TotUnidades/filtro_nums.registros as vUnds,
+					filtro_nums.PrimeraVenta,
+					filtro_nums.UltimaVenta,
+					filtro_nums.vida_producto,
+					(case when filtro_nums.vida_producto = 0 then -1 else filtro_nums.registros/filtro_nums.vida_producto end) as proporcion,
+					data.decil,
+				    max(Unidadesvendidas) as corteMax,
+					min(Unidadesvendidas) as corteMin,
+					avg(Unidadesvendidas) as corteMean
+			from (
+					select dependenciacd, 
+			   	           pluid,
+			   			   fecha,
+					       hora,
+					       unidadesvendidas,
+					       quantile(&n_deciles., Unidadesvendidas) as decil
+					       from bd_ddpo.vwventashora 
+					       where (dependenciacd = &dep.) and 
+		                         (Fecha between &fi and &ff) and 
+		                         (Unidadesvendidas > 0)
+						   group by dependenciacd,
+						            pluid
+		         ) data
+		         inner join (select pluid, 
+		                            dependenciacd, 
+									sum(Unidadesvendidas) as TotUnidades,
+		                            count(dependenciacd) as registros,
+								    min(Fecha) as PrimeraVenta,
+									max(Fecha) as UltimaVenta,
+									abs(min(Fecha) - max(Fecha)) as vida_producto
+		                            from bd_ddpo.vwventashora 
+					                where (dependenciacd= &dep.) and 
+		                                  (Fecha between &fi and &ff) and 
+		                                  (Unidadesvendidas > 0)
+						            group by dependenciacd,
+						                     pluid
+		                     ) filtro_nums on data.dependenciacd = filtro_nums.dependenciacd and
+							                  data.pluid = filtro_nums.pluid
+				 where filtro_nums.registros >= &cut_registros. and 
+					   filtro_nums.UltimaVenta >= &cut_ultima_venta and
+					   filtro_nums.vida_producto > &cut_tiempo_vida.
+				 group by data.dependenciacd,
+		                  data.pluid,
+				    	  data.decil,
+						  filtro_nums.registros,
+						  filtro_nums.TotUnidades,
+		                  filtro_nums.UltimaVenta,
+						  filtro_nums.PrimeraVenta,
+						  filtro_nums.vida_producto
+		   ) master 
+		   where master.proporcion >= &cut_proporcion. ) x
+		   inner join 
+			(
+				select  data3.DependenciaCD,
+	        		    ciu.subzonacd,
+					    dep.ciudadcd,
+	        		    data3.Pluid,
+					    plu.plucd,
+					    art.articuloid,
+						art.subcategoriacd,
+						art.categoriacd,
+						art.sublineacd,
+						subl.subdireccioncd,
+						subdir.direccioncd,
+						data3.Fecha,
+						data3.dia,
+						data3.semana,
+						data3.mes,
+						data3.anio,
+						data3.hora,
+						pludep.clasificacionABC,
+						prod.SaleFactor,
+						data3.UnidadesVendidas,
+						(data3.UnidadesVendidas*prod.SaleFactor) as undsReales,
+						data4.unidadesAcum,
+						(data3.UnidadesVendidas/data4.unidadesAcum) as undsAdim
+				  from (
+						select DependenciaCD,
+							   Pluid,
+							   Fecha,
+							   daynumber_of_week(Fecha) as dia,
+							   WeekNumber_Of_Year(Fecha) as semana,
+							   monthnumber_of_year(Fecha) as mes,
+							   yearnumber_of_calendar(Fecha) as anio,
+					           hora,
+							   UnidadesVendidas
+						from bd_ddpo.vwventashora
+						where DependenciaCD in (&dep.) and UnidadesVendidas > 0 and
+			                  Fecha between &fi and &ff
+					   ) data3
+					   inner join (select * from bd_ddpo.vtpludependencia where estadoplucd = 0) pludep on data3.dependenciaCD = pludep.dependenciaCD and 
+																										   data3.pluid = pludep.pluid
+					   left join (select * from bd_ddpo.vwplu2) prod on data3.pluid = prod.PluID
+					   left join (select * from bd_ddpo.vtplu) plu on data3.pluid = plu.pluid
+			           inner join (select * from bd_ddpo.vtArticulo) art on plu.articuloid = art.articuloid
+					   inner join (select * from bd_ddpo.vtsublinea) subl on art.sublineacd = subl.sublineacd
+			           inner join (select * from bd_ddpo.vtsubdireccion) subdir on subl.subdireccioncd = subdir.subdireccioncd
+					   inner join (select * from bd_ddpo.vtdependencia) dep on data3.dependenciacd =  dep.dependenciacd  
+			           inner join (select * from bd_ddpo.vtciudad) ciu on ciu.ciudadcd =  dep.ciudadcd  
+					   left join (select Fecha,
+						            	  Pluid,
+							        	  DependenciaCD,
+						            	  sum(UnidadesVendidas) as unidadesAcum
+								          from bd_ddpo.vwVentasHora
+										  where DependenciaCD in (&dep.) and UnidadesVendidas > 0 and 
+										        Fecha between &fi and &ff
+								  		  group by Fecha,
+								                   Pluid,
+										   		   DependenciaCD
+			  			) data4
+						on data3.Pluid = data4.Pluid and data3.DependenciaCD = data4.DependenciaCD and data3.Fecha = data4.Fecha
+						) z on x.pluid = z.pluid and x.dependenciacd = z.dependenciacd
+		  group by x.dependenciacd,
+			       z.subzonacd,
+				   z.ciudadcd,
+			       x.Pluid,
+				   z.plucd,
+				   z.articuloid,
+				   z.subcategoriacd,
+				   z.categoriacd,
+				   z.sublineacd,
+				   z.subdireccioncd,
+				   z.direccioncd,
+				   z.Fecha,
+				   z.dia,
+				   z.semana,
+				   z.mes,
+				   z.anio,
+				   z.hora,
+				   z.clasificacionABC,
+				   z.SaleFactor,
+				   z.UnidadesVendidas,
+				   z.undsReales,
+				   z.unidadesAcum,
+				   z.undsAdim ) def
+		   where def.unidadesVendidas <= def.corte
+   		   order by def.dependenciacd,
+            		def.pluid

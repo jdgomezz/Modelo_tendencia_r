@@ -1,0 +1,61 @@
+	select data.DependenciaCD,
+	        ciu.subzonacd,
+		dep.ciudadcd,
+	        data.Pluid,
+		plu.plucd,
+		art.articuloid,
+		art.segmentocd,
+		art.subcategoriacd,
+		art.categoriacd,
+		art.sublineacd,
+		subl.subdireccioncd,
+		subdir.direccioncd,
+		data.dia,
+		data.hora,
+		pludep.clasificacionABC,
+		prod.SaleFactor,
+		data.UnidadesVendidas,
+		(count(data.UnidadesVendidas)) as frec
+	  from (select DependenciaCD,
+		       Pluid,
+		       Fecha,
+		       daynumber_of_week(Fecha) as dia,
+		       WeekNumber_Of_Year(Fecha) as semana,
+		       monthnumber_of_year(Fecha) as mes,
+		       yearnumber_of_calendar(Fecha) as anio,
+		       hora,
+		       UnidadesVendidas
+			from bd_ddpo.vwventashora
+			where DependenciaCD in ( _deps ) and UnidadesVendidas > 0 and
+                  Fecha between _fi and _ff
+		   ) data
+		   inner join (select * from bd_ddpo.vtpludependencia where estadoplucd = 0) pludep on data.dependenciaCD = pludep.dependenciaCD and data.pluid = pludep.pluid
+		   left join (select * from bd_ddpo.vwplu2) prod on data.pluid = prod.PluID
+		   left join (select * from bd_ddpo.vtplu) plu on data.pluid = plu.pluid
+           	   inner join (select * from bd_ddpo.vtArticulo) art on plu.articuloid = art.articuloid
+		   inner join (select * from bd_ddpo.vtsublinea) subl on art.sublineacd = subl.sublineacd
+           	   inner join (select * from bd_ddpo.vtsubdireccion) subdir on subl.subdireccioncd = subdir.subdireccioncd
+		   inner join (select * from bd_ddpo.vtdependencia) dep on data.dependenciacd =  dep.dependenciacd  
+                   inner join (select * from bd_ddpo.vtciudad) ciu on ciu.ciudadcd =  dep.ciudadcd
+           group by data.DependenciaCD,
+	            ciu.subzonacd,
+		    dep.ciudadcd,
+	            data.Pluid,
+		    plu.plucd,
+		    art.articuloid,
+		    art.segmentocd,
+		    art.subcategoriacd,
+		    art.categoriacd,
+		    art.sublineacd,
+		    subl.subdireccioncd,
+		    subdir.direccioncd,
+		    data.dia,
+		    data.hora,
+		    pludep.clasificacionABC,
+		    prod.SaleFactor,
+		    data.UnidadesVendidas
+           order by data.dependenciaCD,
+		    data.Pluid,
+		    data.dia,
+		    data.hora,
+		    data.unidadesVendidas
