@@ -1,6 +1,7 @@
-source('~/source/Load_libs.R')
-Load_libs()
-#file <- '~/querys/query_extraccion_limpieza.txt'
+root <- '~/Agotado_en_gondola'
+source(paste0(root, '/source/Load_libs.R'))
+Load_libs(root)
+#file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
 #ventas <- Load_data(file)
 
 file <- '~/cvs/PRUEBA.csv'

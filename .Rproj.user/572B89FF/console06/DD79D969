@@ -2,3 +2,53 @@ git init
 Initialized empty Git repository in /home/jdgomezz/Agotado_en_gondola/.git/
 ]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ git remote add origin https://github.com/jdgomezz/Modelo_tendencia_r.git
 ]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ git add -A
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ gut [K[K[Kit push -u origin master [K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kgit commit -m "Adding source files to the project"
+[master (root-commit) 038a8c2] Adding source files to the project
+ Committer: Jesus David Gomez Zuluaga <jdgomezz@MLServerLinux.hpyefbkufequrhxfrogwlnbprg.bx.internal.cloudapp.net>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 13 files changed, 931 insertions(+)
+ create mode 100644 .Rproj.user/572B89FF/console06/DD79D969
+ create mode 100644 .Rproj.user/572B89FF/console06/DD79D969.env
+ create mode 100644 querys/query_extraccion.txt
+ create mode 100644 querys/query_extraccion_frec.txt
+ create mode 100644 querys/query_extraccion_limpieza.txt
+ create mode 100644 source/Data_transformation.R
+ create mode 100644 source/Load_data.R
+ create mode 100644 source/Load_libs.R
+ create mode 100644 source/Main.R
+ create mode 100644 source/cluster_model.R
+ create mode 100644 source/ownMath.R
+ create mode 100644 source/td.R
+ create mode 100644 source/test_script.R
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ git push -u origin master [K
+error: cannot run rpostback-askpass: No such file or directory
+Username for 'https://github.com': jdgomezz
+error: cannot run rpostback-askpass: No such file or directory
+Password for 'https://jdgomezz@github.com': 
+Counting objects: 20, done.
+Delta compression using up to 8 threads.
+Compressing objects:   5% (1/18)   Compressing objects:  11% (2/18)   Compressing objects:  16% (3/18)   Compressing objects:  22% (4/18)   Compressing objects:  27% (5/18)   Compressing objects:  33% (6/18)   Compressing objects:  38% (7/18)   Compressing objects:  44% (8/18)   Compressing objects:  50% (9/18)   Compressing objects:  55% (10/18)   Compressing objects:  61% (11/18)   Compressing objects:  66% (12/18)   Compressing objects:  72% (13/18)   Compressing objects:  77% (14/18)   Compressing objects:  83% (15/18)   Compressing objects:  88% (16/18)   Compressing objects:  94% (17/18)   Compressing objects: 100% (18/18)   Compressing objects: 100% (18/18), done.
+Writing objects:   5% (1/20)   Writing objects:  10% (2/20)   Writing objects:  15% (3/20)   Writing objects:  20% (4/20)   Writing objects:  25% (5/20)   Writing objects:  30% (6/20)   Writing objects:  35% (7/20)   Writing objects:  40% (8/20)   Writing objects:  45% (9/20)   Writing objects:  55% (11/20)   Writing objects:  60% (12/20)   Writing objects:  70% (14/20)   Writing objects:  75% (15/20)   Writing objects:  80% (16/20)   Writing objects:  85% (17/20)   Writing objects:  90% (18/20)   Writing objects:  95% (19/20)   Writing objects: 100% (20/20)   Writing objects: 100% (20/20), 12.64 KiB | 0 bytes/s, done.
+Total 20 (delta 2), reused 0 (delta 0)
+remote: Resolving deltas:   0% (0/2)   [Kremote: Resolving deltas:  50% (1/2)   [Kremote: Resolving deltas: 100% (2/2)   [Kremote: Resolving deltas: 100% (2/2), done.[K
+To https://github.com/jdgomezz/Modelo_tendencia_r.git
+ * [new branch]      master -> master
+Branch master set up to track remote branch master from origin.
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ ls
+[0m[01;34mquerys[0m  [01;34msource[0m
+]0;/home/jdgomezz/Agotado_en_gondola]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola[00m$ c [K[Kcd source/
+]0;/home/jdgomezz/Agotado_en_gondola/source]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola/source[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola/source[00m$ ls
+cluster_model.R  Data_transformation.R  Load_data.R  Load_libs.R  Main.R  ownMath.R  td.R  test_script.R
+]0;/home/jdgomezz/Agotado_en_gondola/source]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola/source[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola/source[00m$ cd [K[K[Knano Loas_[K[Kd_libs.R 
+>]0;/home/jdgomezz/Agotado_en_gondola/source]0;jdgomezz@MLServerLinux: ~/Agotado_en_gondola/source[01;32mjdgomezz@MLServerLinux[00m:[01;34m~/Agotado_en_gondola/source[00m$ 

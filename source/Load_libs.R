@@ -1,7 +1,7 @@
 Load_libs <- function(){
-  source('~/source/td.R')
-  source('~/source/onwMath.R')
-  source('~/source/Data_transformation.R')
+  source(paste0(root, '/source/td.R'))
+  source(paste0(root,'/source/onwMath.R'))
+  source(paste0(root,'/source/Data_transformation.R'))
   list.of.packages <- c("reshape2",
                         "dplyr", 
                         "moments",
