@@ -8,7 +8,51 @@
 # Número mínimo de registros de venta a considerar, Fecha de última venta,
 # tiempo de vida del producto, como también frecuencia de venta ()
   Load_csv <- function(file){
+    ti <- Sys.time()
+    
     x <- read.csv(file, header = TRUE, sep = ",")
+    
+    tf <- Sys.time()
+    dt <- (tf - ti)
+    print(dt)
+    
+    return(x)
+  }
+  
+  # Load_xdf: La presente función extrae datos de un archivo csv o de tipo data.frame y los convierte en un dataset del tipo
+  # .xdf, el cual tiene la ventaja que trabaja con formato tidy-data y se guarda en disco, no en memoria.
+  
+  Load_xdf <- function(file, outfile, boolean){
+    ti <- Sys.time()
+    
+    x <- rxImport(inData = file, outFile = outfile, overwrite = TRUE)
+    if (boolean == TRUE){
+      file.remove( outfile )
+    }
+    
+    tf <- Sys.time()
+    dt <- (tf - ti)
+    print(dt)
+    # rxSummary(formula = ~dia:UnidadesVendidas, data = x)            función para crear resumen    
+    return(x)
+  }
+  
+  # Load_xdf_Odbc: La presente función extrae datas directamente 
+  # connectionString <- paste("Driver={SQLite3 ODBC Driver};Database=", claimsSQLiteFileName, sep = "")
+  
+  Load_xdf_Odbc <- function(claimsXdfFileName, connectionString, file, nombre){
+    ti <- Sys.time()
+    
+    query <- readLines(file)
+    query <- paste(query, collapse='\n')
+    
+    claimsOdbcSource <- RxOdbcData(table = nombre, sqlQuery = query, connectionString = connectionString)
+    rxImport(claimsOdbcSource, claimsXdfFileName, overwrite = TRUE)
+    
+    tf <- Sys.time()
+    dt <- (tf - ti)
+    print(dt)
+    
     return(x)
   }
   
@@ -33,5 +77,6 @@
     ventas <- td(query = query);
     tf <- Sys.time()
     dt <- (tf - ti)
+    print(dt)
     return(ventas)
   }

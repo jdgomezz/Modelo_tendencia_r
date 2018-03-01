@@ -33,13 +33,11 @@ char1 <- function(z){
 characteristics <- function(z){
   start_dt  <- Sys.time();
   
-  hours <- read.table("~/cvs/Hora.csv", header = TRUE, sep = ",");
+  hours <- read.table("~/csv/Hora.csv", header = TRUE, sep = ",");
   hours <- hours[, !(names(hours) %in% "key")];
   
-  #x <- data.frame(count(z, Pluid, mes, dia, Hora, UnidadesVendidas));
-  x <- ddply(z, .(Pluid, mes, dia, Hora, UnidadesVendidas), NROW)
-  colnames(x)[ncol(x)] <- "n"
-  
+  x <- data.frame(count(z, Pluid, mes, dia, Hora, UnidadesVendidas));
+
   chars <- data.frame(x %>% group_by(Pluid, mes, dia) %>% summarise(m1 = sum(UnidadesVendidas*n)/sum(n), 
                                                                     m2 = sum(n*(UnidadesVendidas^2))/sum(n),
                                                                     s =  sum(n*((UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)),
