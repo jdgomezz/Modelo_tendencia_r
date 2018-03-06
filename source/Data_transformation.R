@@ -29,7 +29,41 @@ char1 <- function(z){
   return(chars)
   print(dt)
 }
-  
+
+characteristics_xdf <- function(z){
+  x <- z %>% group_by(Pluid, mes, dia, Hora, UnidadesVendidas) %>% summarise(n = n())
+  chars <- x %>% group_by(Pluid, mes, dia) %>% summarise(m1 = sum(UnidadesVendidas*n)/sum(n), 
+                                                         m2 = sum(n*(UnidadesVendidas^2))/sum(n),
+                                                         s =  sum(n*((UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)),
+                                                         sd = sqrt(sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/(sum(n)-1))#,
+                                                         #moda = Mode(rep(UnidadesVendidas, n)),
+                                                         #q1 = quantile(rep(UnidadesVendidas, n), 0.25),
+                                                         #q2 = quantile(rep(UnidadesVendidas, n), 0.5),
+                                                         #q3 = quantile(rep(UnidadesVendidas, n), 0.75),
+                                                         #asim_fisher = (sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^3)/sum(n))/((sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/sum(n))^(3/2)),
+                                                         #curtosis = (sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^4)/sum(n))/((sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/sum(n))^2),
+                                                         #asim_pearson1 = ((sum(UnidadesVendidas*n)/sum(n)) - (Mode(rep(UnidadesVendidas, n))))/(sqrt(sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/(sum(n)-1))),
+                                                         #asim_pearson2 = 3*((sum(UnidadesVendidas*n)/sum(n)) - (quantile(rep(UnidadesVendidas, n), 0.5)))/(sqrt(sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/(sum(n)-1))),
+                                                         #asim_bowley = (quantile(rep(UnidadesVendidas, n), 0.75) + quantile(rep(UnidadesVendidas, n), 0.25) - 2*quantile(rep(UnidadesVendidas, n), 0.5))/(quantile(rep(UnidadesVendidas, n), 0.75) - quantile(rep(UnidadesVendidas, n), 0.25))
+                                                         )
+  chars_x <- x %>% group_by(Pluid, mes, dia) %>% summarise(m1 = sum(Hora*n)/sum(n), 
+                                                           m2 = sum(n*(Hora^2))/sum(n),
+                                                           s =  sum(n*((Hora - sum(Hora*n)/sum(n))^2)),
+                                                           sd = sqrt(sum(n*(Hora - sum(Hora*n)/sum(n))^2)/(sum(n)-1))#,
+                                                           #moda = Mode(rep(Hora, n)),
+                                                           #q1 = quantile(rep(Hora, n), 0.25),
+                                                           #q2 = quantile(rep(Hora, n), 0.5),
+                                                           #q3 = quantile(rep(Hora, n), 0.75),
+                                                           #asim_fisher = (sum(n*(Hora - sum(Hora*n)/sum(n))^3)/sum(n))/((sum(n*(Hora - sum(Hora*n)/sum(n))^2)/sum(n))^(3/2)),
+                                                           #curtosis = (sum(n*(Hora - sum(Hora*n)/sum(n))^4)/sum(n))/((sum(n*(Hora - sum(Hora*n)/sum(n))^2)/sum(n))^2),
+                                                           #asim_pearson1 = ((sum(Hora*n)/sum(n)) - (Mode(rep(Hora, n))))/(sqrt(sum(n*(Hora - sum(Hora*n)/sum(n))^2)/(sum(n)-1))),
+                                                           #asim_pearson2 = 3*((sum(Hora*n)/sum(n)) - (quantile(rep(Hora, n), 0.5)))/(sqrt(sum(n*(Hora - sum(Hora*n)/sum(n))^2)/(sum(n)-1))),
+                                                           #asim_bowley = (quantile(rep(Hora, n), 0.75) + quantile(rep(Hora, n), 0.25) - 2*quantile(rep(Hora, n), 0.5))/(quantile(rep(Hora, n), 0.75) - quantile(rep(Hora, n), 0.25))
+                                                           )
+
+    
+} 
+
 characteristics <- function(z){
   start_dt  <- Sys.time();
   
