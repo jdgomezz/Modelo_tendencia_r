@@ -21,8 +21,7 @@
   
   # Load_xdf: La presente función extrae datos de un archivo csv o de tipo data.frame y los convierte en un dataset del tipo
   # .xdf, el cual tiene la ventaja que trabaja con formato tidy-data y se guarda en disco, no en memoria.
-  
-  Load_xdf <- function(file, outfile, boolean){
+  Load_xdf_csv <- function(file, outfile, boolean){
     ti <- Sys.time()
     
     dataColClasses <- c(DependenciaCD = "factor", SubZonaCD = "factor", CiudadCD = "factor", Pluid = "factor", PluCD = "factor",           
@@ -34,8 +33,8 @@
     x <- rxImport(inData = file, outFile = outfile, overwrite = TRUE, colClasses= dataColClasses)
     if (boolean == TRUE){
       file.remove( outfile )
-    }
-    
+    } 
+   
     tf <- Sys.time()
     dt <- (tf - ti)
     print(dt)
@@ -43,9 +42,9 @@
     return(x)
   }
   
-  # Load_xdf: La presente función extrae datas directamente desde Teradata y escribe un archivo con formato xdf
+  # LoadXdf: La presente función extrae datas directamente desde Teradata y escribe un archivo con formato xdf
   
-  Load_xdf <-function(file, filename){
+  LoadXdf <-function(file, filename, booleano, pars){
     query <- readLines(file)
     query <- paste(query, collapse='\n')
     
@@ -53,17 +52,18 @@
     
     # Definición de filtros:
     
-    query <- gsub("&dep.", 35, query);                           # Dependencia(s)
-    query <- gsub("&fi", "'2017-01-01'", query);                 # Fecha inicial
-    query <- gsub("&ff", "'2018-02-20'", query);                 # Fecha final
-    query <- gsub("&cut_registros.", 0, query);                  # Número mínimo de registro por plu-dep
-    query <- gsub("&cut_ultima_venta", "'2017-11-01'", query);   # Fecha de última venta realizada
-    query <- gsub("&cut_tiempo_vida.", 30, query);               # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
-    query <- gsub("&cut_proporcion.", 1, query);                 # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
-    query <- gsub("&n_deciles.", 100, query);                    # Número de deciles a segmentar la base de datos 
+    query <- gsub("&dep.", pars[1], query);                           # Dependencia(s)
+    query <- gsub("&fi", pars[2], query);                 # Fecha inicial
+    query <- gsub("&ff", pars[3], query);                 # Fecha final
+    query <- gsub("&cut_registros.", pars[4], query);                  # Número mínimo de registro por plu-dep
+    query <- gsub("&cut_ultima_venta", pars[5], query);   # Fecha de última venta realizada
+    query <- gsub("&cut_tiempo_vida.", pars[6], query);               # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
+    query <- gsub("&cut_proporcion.", pars[7], query);                 # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
+    query <- gsub("&n_deciles.", pars[8], query);                    # Número de deciles a segmentar la base de datos 
+    
     
     ti <- Sys.time()
-    ventas <- td_Xdf(query = query, filename);
+    ventas <- td_Xdf(query = query, name = filename, booleano = booleano);
     tf <- Sys.time()
     dt <- (tf - ti)
     print(dt)

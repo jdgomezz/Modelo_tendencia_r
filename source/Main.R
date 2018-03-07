@@ -17,15 +17,26 @@ ventas <- Load_csv(file)
 
 file <- 'csv/PRUEBA.csv'
 outfile <- 'xdf/ventas.xdf'
-booleano <- FALSE
-venta <- Load_xdf(file, outfile, booleano)
+venta <- Load_Xdf(file, outfile)
 
 # Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
 # una tabla de datos con formato xdf
 
+dep <- 35                                    # Dependencia(s)
+fi <- "'2017-01-01'"                         # Fecha inicial
+ff <- "'2018-02-20'"                         # Fecha final
+cut_registros <- 0                           # Número mínimo de registro por plu-dep
+cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
+cut_tiempo_vida <- 30                        # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
+cut_proporcion <- 1                          # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
+n_deciles <- 100                             # Nro de deciles a seccionar la muestra
+
+pars <- c(dep, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+booleano <- TRUE
 file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
-outfile <- 'xdf/ventas.xdf'
-venta <- Load_xdf(file, filename)
+filename <- 'xdf/ventas.xdf'
+
+venta <- LoadXdf(file, filename, booleano, pars)
   
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
 xs <- characteristics(ventas)
