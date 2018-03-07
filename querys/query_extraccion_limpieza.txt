@@ -138,7 +138,7 @@ select def.dependenciacd,
 						pludep.clasificacionABC,
 						prod.SaleFactor,
 						data3.UnidadesVendidas,
-						(data3.UnidadesVendidas*prod.SaleFactor) as undsReales,
+						CAST(round(data3.UnidadesVendidas*prod.SaleFactor) as integer) as undsReales,
 						data4.unidadesAcum,
 						(data3.UnidadesVendidas/data4.unidadesAcum) as undsAdim
 				  from (

@@ -20,15 +20,13 @@ outfile <- 'xdf/ventas.xdf'
 booleano <- FALSE
 venta <- Load_xdf(file, outfile, booleano)
 
-# Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir una tabla de datos
-# con formato xdf
+# Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
+# una tabla de datos con formato xdf
 
-connectionString <- "xxxxxx"
-claimsXdfFileName <- "yyyyy"
-file <- 'Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
-nombre <- "venta"
-Load_xdf_Odbc(claimsXdfFileName, connectionString, file, nombre)
-
+file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
+outfile <- 'xdf/ventas.xdf'
+venta <- Load_xdf(file, filename)
+  
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
 xs <- characteristics(ventas)
 model <- cluster_model(xs[[1]], 100, 2, '4g')

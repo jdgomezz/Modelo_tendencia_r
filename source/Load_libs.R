@@ -11,8 +11,9 @@ Load_libs <- function(root){
                         "Emcdf",
                         "agrmt", 
                         "ks",
-                        "h2o")
-  
+                        "h2o",
+                        "RODBC")
+
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
   
