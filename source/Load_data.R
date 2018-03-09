@@ -27,7 +27,7 @@
     dataColClasses <- c(DependenciaCD = "factor", SubZonaCD = "factor", CiudadCD = "factor", Pluid = "factor", PluCD = "factor",           
                     ArticuloID = "factor", SubCategoriaCD = "factor", CategoriaCD = "factor", SubLineaCD = "factor", SubDireccionCD = "factor", 
                     DireccionCD = "factor", Fecha = "Date", dia = "factor", semana = "factor", mes = "factor",             
-                    anio = "factor", Hora = "factor", ClasificacionABC = "factor", SaleFactor = "integer", UnidadesVendidas = "factor",
+                    anio = "factor", Hora = "factor", ClasificacionABC = "factor", SaleFactor = "integer", UnidadesVendidas = "float32",
                     undsReales = "float32", unidadesAcum = "float32", undsAdim = "float32", corte = "float32")
     
     x <- rxImport(inData = file, outFile = outfile, overwrite = TRUE, colClasses= dataColClasses)

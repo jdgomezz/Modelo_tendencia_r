@@ -2,6 +2,8 @@ root <- '~/Agotado_en_gondola'
 source(paste0(root, '/source/Load_libs.R'))
 Load_libs(root)
 
+RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máquina a paralelo
+
 # ================ INSTRUCCIONES DE CARGA DE DATOS ======================
 # Cargar datos con conexión odbc
 
@@ -17,14 +19,14 @@ ventas <- Load_csv(file)
 
 file <- 'csv/PRUEBA.csv'
 outfile <- 'xdf/ventas.xdf'
-venta <- Load_Xdf(file, outfile)
+venta <- Load_xdf_csv(file, outfile, boolean = FALSE)
 
 # Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
 # una tabla de datos con formato xdf
 
 dep <- 35                                    # Dependencia(s)
-fi <- "'2017-01-01'"                         # Fecha inicial
-ff <- "'2018-02-20'"                         # Fecha final
+fi <- "'2018-01-01'"                         # Fecha inicial
+ff <- "'2018-03-08'"                         # Fecha final
 cut_registros <- 0                           # Número mínimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
 cut_tiempo_vida <- 30                        # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
@@ -39,6 +41,11 @@ filename <- 'xdf/ventas.xdf'
 venta <- LoadXdf(file, filename, booleano, pars)
   
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
-xs <- characteristics(ventas)
+
+chars_namefile <- "xdf/characteristics.xdf"
+xs <- RxCharacteristics(z = venta, name = chars_namefile)
+
+# ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
+
 model <- cluster_model(xs[[1]], 100, 2, '4g')
 

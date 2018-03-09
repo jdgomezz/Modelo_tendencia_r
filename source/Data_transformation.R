@@ -32,7 +32,22 @@ char1 <- function(z){
 
 characteristics_xdf <- function(z){
   x <- z %>% group_by(Pluid, mes, dia, Hora, UnidadesVendidas) %>% summarise(n = n())
-  chars <- x %>% group_by(Pluid, mes, dia) %>% summarise(m1 = sum(UnidadesVendidas*n)/sum(n), 
+  
+  
+  # use transformFunc to create new data
+  xform <- function(dataList){
+    outList <- list()
+    outList$m1 <- sum(dataList$UnidadesVendidas*dataList$n)
+    return (outList)
+  }
+  
+ rxDataStep(inData = venta, outFile = venta, transformFunc = xform, overwrite = TRUE)
+ rxGetVarInfo(outputFile)
+  
+  
+  chars <- venta %>% group_by(Pluid, dia) %>% mutate(s = UnidadesVendidas*n) %>% summarise(m1 = sum(s)/sum(n))
+  
+  chars <- x %>% group_by(Pluid, dia) %>% summarise(m1 = sum(UnidadesVendidas*n)/sum(n), 
                                                          m2 = sum(n*(UnidadesVendidas^2))/sum(n),
                                                          s =  sum(n*((UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)),
                                                          sd = sqrt(sum(n*(UnidadesVendidas - sum(UnidadesVendidas*n)/sum(n))^2)/(sum(n)-1))#,
@@ -150,4 +165,29 @@ estimated_dist <- function (x, y, bool){
 }
 
 
+RxCharacteristics <- function (z, name){
+  start_dt  <- Sys.time();
+  
+  x <- z %>% group_by(dia) %>% summarise(m1 = mean(UnidadesVendidas),
+                                             m2 = moment(UnidadesVendidas, order=2),
+                                             m3 = moment(UnidadesVendidas, order=3),
+                                             sd = sd(UnidadesVendidas),
+                                             q1 = quantile(UnidadesVendidas, 0.25),
+                                             q2 = quantile(UnidadesVendidas, 0.5),
+                                             q3 = quantile(UnidadesVendidas, 0.75),
+                                             sesgo = skewness(UnidadesVendidas),
+                                             curtosis = kurtosis(UnidadesVendidas))
+  x <- rxDataStep(inData = x, 
+             outFile = name, 
+             transforms = list(asim_fisher = m3/(sd^3),
+                               asim_pearson = 3*(m1 - q2)/sd, 
+                               asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
+             overwrite = TRUE)
+  
+  end_dt  <- Sys.time();
+  dt <- abs(start_dt - end_dt);
+  print(dt)
+  
+  return(x)
+}
 

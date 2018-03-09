@@ -12,7 +12,9 @@ Load_libs <- function(root){
                         "agrmt", 
                         "ks",
                         "h2o",
-                        "RODBC")
+                        "RODBC",
+                        "RJDBC"
+  )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
@@ -22,6 +24,6 @@ Load_libs <- function(root){
   # Paquetes de revolutionAnalytics (http://blog.revolutionanalytics.com/packages/page/2/)
   # install.packages(c("dplyr", "dbplyr", "odbc", "sparklyr"), repos = "https://cloud.r-project.org")
   # devtools::install_github("RevolutionAnalytics/dplyrXdf")
-  # library(dplyrXdf)
+  # libr<<sary(dplyrXdf)
   
 }
