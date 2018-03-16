@@ -7,8 +7,8 @@ RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máqu
 # ================ INSTRUCCIONES DE CARGA DE DATOS ======================
 # Cargar datos con conexión odbc
 
-file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
-ventas <- Load_data(file)
+#file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
+#ventas <- Load_data(file)
 
 # Cargar datos con un read.csv típico
 file <- '~/csv/PRUEBA.csv'
@@ -18,13 +18,13 @@ ventas <- Load_csv(file)
 # con formato xdf
 
 file <- 'csv/PRUEBA.csv'
-outfile <- 'xdf/ventas.xdf'
-venta <- Load_xdf_csv(file, outfile, boolean = FALSE)
+outfile <- 'xdf/ventas_35.xdf'
+venta_35 <- Load_xdf_csv(file, outfile, boolean = FALSE)
 
 # Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
 # una tabla de datos con formato xdf
 
-dep <- 35                                    # Dependencia(s)
+dep <- "41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569" # Dependencia(s)
 fi <- "'2018-01-01'"                         # Fecha inicial
 ff <- "'2018-03-08'"                         # Fecha final
 cut_registros <- 0                           # Número mínimo de registro por plu-dep
@@ -43,9 +43,9 @@ venta <- LoadXdf(file, filename, booleano, pars)
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
 
 chars_namefile <- "xdf/characteristics.xdf"
-xs <- RxCharacteristics(z = venta, name = chars_namefile)
+xs <- RxCharacteristics(z = venta_35, name = chars_namefile)
 
 # ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
 
-model <- cluster_model(xs[[1]], 100, 2, '4g')
+#model <- cluster_model(xs[[1]], 100, 2, '4g')
 

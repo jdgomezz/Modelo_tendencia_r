@@ -123,6 +123,41 @@ characteristics <- function(z){
   return(characteristics)
 }
 
+
+characteristics_classic <- function(z){
+  start_dt  <- Sys.time();
+  
+  hours <- read.table("~/csv/Hora.csv", header = TRUE, sep = ",");
+  hours <- hours[, !(names(hours) %in% "key")];
+  
+  chars <- data.frame(z %>% group_by(Pluid, mes, dia) %>% summarise(m1 = mean(UnidadesVendidas), 
+                                                                    m2 = moment(UnidadesVendidas, order = 2),
+                                                                    sd = sd(UnidadesVendidas),
+                                                                    moda = Mode(UnidadesVendidas),
+                                                                    q1 = quantile(UnidadesVendidas, 0.25),
+                                                                    q2 = quantile(UnidadesVendidas, 0.5),
+                                                                    q3 = quantile(UnidadesVendidas, 0.75),
+                                                                    curtosis = kurtosis(UnidadesVendidas),
+                                                                    sesgo = skewness(UnidadesVendidas)))
+  
+  chars_x <- data.frame(z %>% group_by(Pluid, mes, dia) %>% summarise(m1 = mean(Hora), 
+                                                                    m2 = moment(Hora, order = 2),
+                                                                    sd = sd(Hora),
+                                                                    moda = Mode(Hora),
+                                                                    q1 = quantile(Hora, 0.25),
+                                                                    q2 = quantile(Hora, 0.5),
+                                                                    q3 = quantile(Hora, 0.75),
+                                                                    curtosis = kurtosis(Hora),
+                                                                    sesgo = skewness(Hora)))
+  
+  characteristics <- list(z, chars, chars_x)
+  end_dt  <- Sys.time();
+  dt <- abs(start_dt - end_dt);
+  print(dt)
+  return(characteristics_classics)
+}
+
+
 # Cálculo de la probabilidad conjunta empírica
 # Realizado por: Jesús David Gómez Zuluaga
 # Grupo Exito -- Última actualización: Febrero 20 de 2018
@@ -168,21 +203,23 @@ estimated_dist <- function (x, y, bool){
 RxCharacteristics <- function (z, name){
   start_dt  <- Sys.time();
   
-  x <- z %>% group_by(dia) %>% summarise(m1 = mean(UnidadesVendidas),
-                                             m2 = moment(UnidadesVendidas, order=2),
-                                             m3 = moment(UnidadesVendidas, order=3),
+  x <- z %>% group_by(Pluid, dia) %>% summarise(m1 = mean(UnidadesVendidas),
+                                             #m2 = moment(UnidadesVendidas, order=2),
+                                             #m3 = moment(UnidadesVendidas, order=3),
                                              sd = sd(UnidadesVendidas),
-                                             q1 = quantile(UnidadesVendidas, 0.25),
-                                             q2 = quantile(UnidadesVendidas, 0.5),
-                                             q3 = quantile(UnidadesVendidas, 0.75),
-                                             sesgo = skewness(UnidadesVendidas),
-                                             curtosis = kurtosis(UnidadesVendidas))
-  x <- rxDataStep(inData = x, 
-             outFile = name, 
-             transforms = list(asim_fisher = m3/(sd^3),
-                               asim_pearson = 3*(m1 - q2)/sd, 
-                               asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
-             overwrite = TRUE)
+                                             suma = sum(UnidadesVendidas),
+                                             q1 = median(UnidadesVendidas)
+                                             #q2 = quantile(UnidadesVendidas, 0.5),
+                                             #q3 = quantile(UnidadesVendidas, 0.75),
+                                             #sesgo = skewness(UnidadesVendidas)
+                                             #curtosis = kurtosis(UnidadesVendidas)
+                                             )
+  #x <- rxDataStep(inData = x, 
+  #           outFile = name, 
+  #           transforms = list(asim_fisher = m3/(sd^3),
+  #                            asim_pearson = 3*(m1 - q2)/sd, 
+  #                             asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
+  #           overwrite = TRUE)
   
   end_dt  <- Sys.time();
   dt <- abs(start_dt - end_dt);

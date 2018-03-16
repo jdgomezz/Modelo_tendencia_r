@@ -82,7 +82,7 @@ select def.dependenciacd,
 					       unidadesvendidas,
 					       quantile(&n_deciles., Unidadesvendidas) as decil
 					       from bd_ddpo.vwventashora 
-					       where (dependenciacd = &dep.) and 
+					       where (dependenciacd in (&dep.)) and 
 		                         (Fecha between &fi and &ff) and 
 		                         (Unidadesvendidas > 0)
 						   group by dependenciacd,
@@ -96,7 +96,7 @@ select def.dependenciacd,
 									max(Fecha) as UltimaVenta,
 									abs(min(Fecha) - max(Fecha)) as vida_producto
 		                            from bd_ddpo.vwventashora 
-					                where (dependenciacd= &dep.) and 
+					                where (dependenciacd in (&dep.)) and 
 		                                  (Fecha between &fi and &ff) and 
 		                                  (Unidadesvendidas > 0)
 						            group by dependenciacd,
