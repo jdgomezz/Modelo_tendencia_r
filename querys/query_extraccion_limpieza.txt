@@ -143,7 +143,7 @@ select def.dependenciacd,
 						(data3.UnidadesVendidas/data4.unidadesAcum) as undsAdim
 				  from (
 						select DependenciaCD,
-							   Pluid,
+							   Pluid,javascript:;
 							   Fecha,
 							   daynumber_of_week(Fecha) as dia,
 							   WeekNumber_Of_Year(Fecha) as semana,

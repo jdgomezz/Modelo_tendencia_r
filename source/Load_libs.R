@@ -24,6 +24,6 @@ Load_libs <- function(root){
   # Paquetes de revolutionAnalytics (http://blog.revolutionanalytics.com/packages/page/2/)
   # install.packages(c("dplyr", "dbplyr", "odbc", "sparklyr"), repos = "https://cloud.r-project.org")
   # devtools::install_github("RevolutionAnalytics/dplyrXdf")
-  # libr<<sary(dplyrXdf)
+  # library(dplyrXdf)
   
 }

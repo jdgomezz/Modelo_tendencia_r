@@ -130,7 +130,7 @@ characteristics_classic <- function(z){
   hours <- read.table("~/csv/Hora.csv", header = TRUE, sep = ",");
   hours <- hours[, !(names(hours) %in% "key")];
   
-  chars <- data.frame(z %>% group_by(Pluid, mes, dia) %>% summarise(m1 = mean(UnidadesVendidas), 
+  characteristics_classic <- data.frame(z %>% group_by(Pluid, dia) %>% summarise(m1 = mean(UnidadesVendidas), 
                                                                     m2 = moment(UnidadesVendidas, order = 2),
                                                                     sd = sd(UnidadesVendidas),
                                                                     moda = Mode(UnidadesVendidas),
@@ -140,21 +140,10 @@ characteristics_classic <- function(z){
                                                                     curtosis = kurtosis(UnidadesVendidas),
                                                                     sesgo = skewness(UnidadesVendidas)))
   
-  chars_x <- data.frame(z %>% group_by(Pluid, mes, dia) %>% summarise(m1 = mean(Hora), 
-                                                                    m2 = moment(Hora, order = 2),
-                                                                    sd = sd(Hora),
-                                                                    moda = Mode(Hora),
-                                                                    q1 = quantile(Hora, 0.25),
-                                                                    q2 = quantile(Hora, 0.5),
-                                                                    q3 = quantile(Hora, 0.75),
-                                                                    curtosis = kurtosis(Hora),
-                                                                    sesgo = skewness(Hora)))
-  
-  characteristics <- list(z, chars, chars_x)
   end_dt  <- Sys.time();
   dt <- abs(start_dt - end_dt);
   print(dt)
-  return(characteristics_classics)
+  return(characteristics_classic)
 }
 
 
@@ -200,31 +189,55 @@ estimated_dist <- function (x, y, bool){
 }
 
 
-RxCharacteristics <- function (z, name){
+RxCharacteristics <- function (z, name, name1, name2){
   start_dt  <- Sys.time();
   
-  x <- z %>% group_by(Pluid, dia) %>% summarise(m1 = mean(UnidadesVendidas),
-                                             #m2 = moment(UnidadesVendidas, order=2),
-                                             #m3 = moment(UnidadesVendidas, order=3),
-                                             sd = sd(UnidadesVendidas),
-                                             suma = sum(UnidadesVendidas),
-                                             q1 = median(UnidadesVendidas)
-                                             #q2 = quantile(UnidadesVendidas, 0.5),
-                                             #q3 = quantile(UnidadesVendidas, 0.75),
-                                             #sesgo = skewness(UnidadesVendidas)
-                                             #curtosis = kurtosis(UnidadesVendidas)
+  x <- rxImport(z) %>% group_by(DependenciaCD, Pluid, dia) %>% summarise(m1 = mean(UnidadesVendidas),
+                                                               m2 = moment(UnidadesVendidas, order=2),
+                                                               m3 = moment(UnidadesVendidas, order=3),
+                                                               sd = sd(UnidadesVendidas),
+                                                               suma = sum(UnidadesVendidas),
+                                                               n = n(),
+                                                               moda = Mode(UnidadesVendidas),
+                                                               q1 = quantile(UnidadesVendidas, 0.25),
+                                                               q2 = median(UnidadesVendidas),
+                                                               q3 = quantile(UnidadesVendidas, 0.75),
+                                                               sesgo = skewness(UnidadesVendidas),
+                                                               curtosis = kurtosis(UnidadesVendidas)
                                              )
-  #x <- rxDataStep(inData = x, 
-  #           outFile = name, 
-  #           transforms = list(asim_fisher = m3/(sd^3),
-  #                            asim_pearson = 3*(m1 - q2)/sd, 
-  #                             asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
-  #           overwrite = TRUE)
+  x <- rxDataStep(inData = x, 
+             outFile = name1, 
+             transforms = list(asim_fisher = m3/(sd^3),
+                               asim_pearson0 = (m1 - moda)/sd,
+                               asim_pearson = 3*(m1 - q2)/sd, 
+                               asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
+             overwrite = TRUE)
   
+  xh <- rxImport(z) %>% group_by(DependenciaCD, Pluid, dia) %>% summarise(m1h = mean(Hora_n),
+                                                                          m2h = moment(Hora_n, order=2),
+                                                                          m3h = moment(Hora_n, order=3),
+                                                                          sdh = sd(Hora_n),
+                                                                          sumah = sum(Hora_n),
+                                                                          nh = n(),
+                                                                          modah = Mode(Hora_n),
+                                                                          q1h = quantile(Hora_n, .25),
+                                                                          q2h = median(Hora_n),
+                                                                          q3h = quantile(Hora_n, 0.75),
+                                                                          sesgoh = skewness(Hora_n),
+                                                                          curtosish = kurtosis(Hora_n)
+  )
+  xh <- rxDataStep(inData = xh, 
+                   outFile = name2, 
+                   transforms = list(asim_fisherh = m3h/(sdh^3),
+                                     asim_pearson0h = (m1h - modah)/sdh,
+                                     asim_pearsonh = 3*(m1h - q2h)/sdh, 
+                                     asim_bowleyh = (q3h + q1h -2*q2h)/(q3h- q1h)),
+                   overwrite = TRUE)
+  
+  xs <- rxMerge(inData1 = x, inData2 = xh, outFile = name, matchVars = c("DependenciaCD", "Pluid", "dia"), type = "inner", overwrite = TRUE)
   end_dt  <- Sys.time();
   dt <- abs(start_dt - end_dt);
   print(dt)
   
-  return(x)
+  return(xs)
 }
-
