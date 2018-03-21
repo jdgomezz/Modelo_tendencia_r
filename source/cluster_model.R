@@ -1,9 +1,5 @@
 
 cluster_model <- function(xs, k_n, nth, memo, dep){
-  
-  k_n <- 100
-  nth <- 10
-  memo <- '4g'
   conn <- h2o.init(ip = "localhost", port=54321, nthreads = nth, max_mem_size = memo)
   h2o.removeAll() # Clean slate - just in case the cluster was already running
   
@@ -67,6 +63,7 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   patrones <- xs.hex[pos_aux, ];
   nc <- length(pos_aux);
   
+  output <- list(cluster_model, patrones)
   return(patrones)
 }
 
