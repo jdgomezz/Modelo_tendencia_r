@@ -59,4 +59,7 @@ xs2 <- characteristics_classic(ventas)
 
 # ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
 
-model <- cluster_model(xs[[1]], 100, 2, '4g')
+conn <- h2o.init(ip = "localhost", port=54321, nthreads = nth, max_mem_size = memo)
+h2o.removeAll() # Clean slate - just in case the cluster was already running
+
+model <- cluster_model(xs = xs, k_n = 100, nth = 2, memo ='4g', dep = 35)

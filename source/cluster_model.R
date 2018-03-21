@@ -1,7 +1,6 @@
 
 cluster_model <- function(xs, k_n, nth, memo, dep){
-  conn <- h2o.init(ip = "localhost", port=54321, nthreads = nth, max_mem_size = memo)
-  h2o.removeAll() # Clean slate - just in case the cluster was already running
+  t_start <- Sys.time()
   
   xs.hex <- as.h2o(xs);          # Conversión a formato de datos de h2o
   
@@ -64,7 +63,12 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   nc <- length(pos_aux);
   
   output <- list(cluster_model, patrones)
-  return(patrones)
+  
+  t_end <- Sys.time()
+  
+  dt <- abs(t_start - t_end)
+  print(dt)
+  return(output)
 }
 
   # Estimación de densidad de probabilidad con el kernel density estimation package 
