@@ -30,43 +30,143 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   x <- x[1:3];                    # Variables independientes: dep / plu / dia
   
   # k-means
-  cluster_model = h2o.kmeans(training_frame = train, k = k_n, x =  y)
-  centers <- as.matrix(cluster_model@model$centers);
-  nc = nrow(centers)
-  distance <- matrix(nrow = nc, ncol = nc)
+  
+  cluster_model = h2o.kmeans(training_frame = train, validation_frame = valid, nfolds = 5, 
+                           fold_assignment = "Random", keep_cross_validation_predictions = TRUE,
+                           init="Furthest", keep_cross_validation_fold_assignment = TRUE,
+                           k = k_n, standardize = TRUE, max_iterations = 120, y);
+  
+  centros <- as.matrix(cluster_model@model$centers);
+  storage.mode(centros) <- "numeric"
+  
+  centros.hex <- as.h2o(centros);
+  nc = nrow(centros.hex);
+  
+  distancia <- matrix(nrow = nc, ncol= nc);
   
   # Cluster distances
-  
   for (i in  1:nc){
     for (j in i:nc){
-      aux <- (as.numeric(centers[i, ]) -  as.numeric(centers[j, ]))^2;
-      distance[i, j] <- sqrt(sum(aux));
+      aux <- (as.numeric(centros[i, ]) -  as.numeric(centros[j, ]))^2;
+      distancia[i, j] <- sqrt(sum(aux));
     }
   }
   
-  chosen <- matrix(nrow = nc, ncol = 1)
+  chosen = matrix(nrow = nc, ncol = 1);
   
-  # Find closest points to centroids
-  N <- ncol(centers)
-  for (j in 1:nc){
-    d <- Inf;
-    for (i in 1:nrow(xs.hex)){
-      x <- as.numeric(centers[j, 2:N]);
-      yy <- as.vector(as.numeric(xs.hex[i, y]));
-      yy[is.na(yy)] <- 0;
-      d_aux <- sqrt(sum((x - yy)^2));
-      if (d_aux < d){
-        d <- d_aux;
-        chosen[j, 1] <- i
-      }
-    }
+  # Encontrar los puntos mas cercanos a los centroides
+  pos <- array(0,dim =nc);
+  
+  for (i in 1:nc){
+    dist <- (xs.hex[, y] - centros.hex[i, y])^2
+    x <- sqrt(apply(dist, 1, sum));
+    yy <- h2o.which_min(x);
+    pos[i] <- yy[1,1];
   }
+  pos_aux <- sort(unique(pos));
+  patrones <- xs.hex[pos_aux, ];
+  nc <- length(pos_aux);
   
-  # Plot of scoring history
+  return(patrones)
+}
+
+  # Estimación de densidad de probabilidad con el kernel density estimation package 
+  # para hallar las distribuciones de los patrones
   
-  plot(cluster_model@model$scoring_history$iterations, cluster_model@model$scoring_history$number_of_reassigned_observations)
+  library(ks);
   
+  deps <- h2o.unique(patrones[, 1]);
+  plus <- h2o.unique(patrones[, 2]);
+  dias <- h2o.unique(patrones[, 3]);
+  
+  dat <- data.frame(data$Pluid, data$dia, data$Hora, data$UnidadesVerdaderas);
+  dat$concat <- paste(dat$data.Pluid, dat$data.dia, sep = "-");
+  
+  patrones <- as.data.frame(patrones);
+  patrones$concat <- paste(patrones$Pluid, patrones$dia, sep = "-");
+  
+  dat <- dat[dat$concat %in% patrones$concat, ];
+  
+  dat2 <- data.frame(data$Pluid, data$dia, data$Hora, data$UnidadesVerdaderas);
+  dat2$concat <- paste(dat2$data.Pluid, dat2$data.dia, sep = "-");
+  
+  #for (i in 1:nc){
+  #  auxdata <- dat[dat$concat == patrones[i, "concat"], ]
+  #  auxdata <- auxdata[, !(names(auxdata) %in% c("concat", "data.Pluid", "data.dia"))]
+  #  print(nrow(auxdata));
+  #  Hpi1 <- Hpi(x=auxdata);
+  #  fhat.pi1 <- kde(x=auxdata, H=Hpi1);
+  #  u <- fhat.pi1$eval.points[[1]];
+  #  v <- fhat.pi1$eval.points[[2]];
+  #  est_dist <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
+  #  plot_ly(x = v, y = u, z= est_dist) %>% add_surface() 
+  #}
+  
+  # Verificar si los clusters son los adecuados.
+  
+  cluster_model.fit = h2o.predict(object = cluster_model,  newdata = valid);
+  cluster_model.fit = as.data.frame(cluster_model.fit);
+  
+  I = 45; # Cluster
+  chars_km.fit2 = which((cluster_model.fit == I) == 1);
+  
+  nearest_center <- as.data.frame(xs[pos[I], 1:2])
+  nearest_center$concat <- paste(nearest_center$Pluid, nearest_center$dia, sep = "-");
+  patron <- dat2[dat2$concat == nearest_center$concat, 3:4];
+  
+  Hpi1 <- Hpi(x=patron);
+  fhat.pi1 <- kde(x=patron, H=Hpi1);
+  u <- fhat.pi1$eval.points[[1]];
+  v <- fhat.pi1$eval.points[[2]];
+  est_dist2 <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
+  p1 <- plot_ly(x = v, y = u, z= est_dist2, scene='scene1') %>% add_surface(showscale=FALSE)
+  
+  i <- 15;
+  muestra <- as.data.frame(valid[chars_km.fit2[i], 1:2]);
+  muestra$concat <- paste(muestra$Pluid, muestra$dia, sep = "-");
+  dato <- dat2[dat2$concat == muestra$concat, 3:4];
+  
+  Hpi1 <- Hpi(x=dato);
+  fhat.pi1 <- kde(x=dato, H=Hpi1);
+  u <- fhat.pi1$eval.points[[1]];
+  v <- fhat.pi1$eval.points[[2]];
+  est_dist <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
+  p2 <- plot_ly(x = v, y = u, z= est_dist, scene='scene2') %>% add_surface(showscale=FALSE) 
+  
+  i <- 6;
+  muestra <- as.data.frame(valid[chars_km.fit2[i], 1:2]);
+  muestra$concat <- paste(muestra$Pluid, muestra$dia, sep = "-");
+  dato <- dat2[dat2$concat == muestra$concat, 3:4];
+  
+  Hpi1 <- Hpi(x=dato);
+  fhat.pi1 <- kde(x=dato, H=Hpi1);
+  u <- fhat.pi1$eval.points[[1]];
+  v <- fhat.pi1$eval.points[[2]];
+  est_dist <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
+  p3 <- plot_ly(x = v, y = u, z= est_dist, scene='scene3') %>% add_surface(showscale=FALSE) 
+  
+  i <- 2;
+  muestra <- as.data.frame(valid[chars_km.fit2[i], 1:2]);
+  muestra$concat <- paste(muestra$Pluid, muestra$dia, sep = "-");
+  dato <- dat2[dat2$concat == muestra$concat, 3:4];
+  
+  Hpi1 <- Hpi(x=dato);
+  fhat.pi1 <- kde(x=dato, H=Hpi1);
+  u <- fhat.pi1$eval.points[[1]];
+  v <- fhat.pi1$eval.points[[2]];
+  est_dist <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
+  p4 <- plot_ly(x = v, y = u, z= est_dist, scene='scene4') %>% add_surface(showscale=FALSE) 
+  
+  subplot(p1, p2, p3, p4)  %>%
+    layout(title = "3D Subplots",
+           scene1 = list(domain=list(x=c(0,0.5),y=c(0.5,1)),
+                         aspectmode='cube'),
+           scene2 = list(domain=list(x=c(0.5,1),y=c(0.5,1)),
+                         aspectmode='cube'),
+           scene3 = list(domain=list(x=c(0,0.5),y=c(0,0.5)),
+                         aspectmode='cube'),
+           scene4 = list(domain=list(x=c(0.5,1),y=c(0,0.5)),
+                         aspectmode='cube'))
   
   return(cluster_model)
-}
 
