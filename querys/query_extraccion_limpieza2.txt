@@ -1,20 +1,4 @@
-select def2.dependenciacd,
-	       def2.subzonacd,
-		   def2.ciudadcd,
-	       def2.Pluid,
-		   def2.plucd,
-		   def2.articuloid,
-		   def2.subcategoriacd,
-		   def2.categoriacd,
-		   def2.sublineacd,
-		   def2.subdireccioncd,
-		   def2.direccioncd,
-		   def2.dia,
-		   def2.hora,
-		   def2.clasificacionABC,
-		   def2.UnidadesVendidas,
-		   count(def2.UnidadesVendidas) as n
-    from (select def.dependenciacd,
+select def.dependenciacd,
 	       def.subzonacd,
 		   def.ciudadcd,
 	       def.Pluid,
@@ -98,8 +82,7 @@ select def2.dependenciacd,
 					       unidadesvendidas,
 					       quantile(&n_deciles., Unidadesvendidas) as decil
 					       from bd_ddpo.vwventashora 
-					       where (dependenciacd = &dep.) and 
-		                         (Fecha between &fi and &ff) and 
+					       where (Fecha between &fi and &ff) and 
 		                         (Unidadesvendidas > 0)
 						   group by dependenciacd,
 						            pluid
@@ -112,8 +95,7 @@ select def2.dependenciacd,
 									max(Fecha) as UltimaVenta,
 									abs(min(Fecha) - max(Fecha)) as vida_producto
 		                            from bd_ddpo.vwventashora 
-					                where (dependenciacd= &dep.) and 
-		                                  (Fecha between &fi and &ff) and 
+					                where (Fecha between &fi and &ff) and 
 		                                  (Unidadesvendidas > 0)
 						            group by dependenciacd,
 						                     pluid
@@ -168,7 +150,7 @@ select def2.dependenciacd,
 					           hora,
 							   UnidadesVendidas
 						from bd_ddpo.vwventashora
-						where DependenciaCD in (&dep.) and UnidadesVendidas > 0 and
+						where UnidadesVendidas > 0 and
 			                  Fecha between &fi and &ff
 					   ) data3
 					   inner join (select * from bd_ddpo.vtpludependencia where estadoplucd = 0) pludep on data3.dependenciaCD = pludep.dependenciaCD and 
@@ -185,7 +167,7 @@ select def2.dependenciacd,
 							        	  DependenciaCD,
 						            	  sum(UnidadesVendidas) as unidadesAcum
 								          from bd_ddpo.vwVentasHora
-										  where DependenciaCD in (&dep.) and UnidadesVendidas > 0 and 
+										  where UnidadesVendidas > 0 and 
 										        Fecha between &fi and &ff
 								  		  group by Fecha,
 								                   Pluid,
@@ -217,21 +199,5 @@ select def2.dependenciacd,
 				   z.unidadesAcum,
 				   z.undsAdim ) def
 		   where def.unidadesVendidas <= def.corte
-		   ) def2
-          group by def2.dependenciacd,
-			       def2.subzonacd,
-				   def2.ciudadcd,
-			       def2.Pluid,
-				   def2.plucd,
-				   def2.articuloid,
-				   def2.subcategoriacd,
-				   def2.categoriacd,
-				   def2.sublineacd,
-				   def2.subdireccioncd,
-				   def2.direccioncd,
-				   def2.dia,
-				   def2.hora,
-				   def2.clasificacionABC,
-				   def2.UnidadesVendidas
-   		   order by def2.dependenciacd,
-            		def2.pluid
+   		   order by def.dependenciacd,
+            		def.pluid

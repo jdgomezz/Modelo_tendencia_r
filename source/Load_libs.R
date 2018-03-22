@@ -11,6 +11,8 @@ Load_libs <- function(root){
                         "Emcdf",
                         "agrmt", 
                         "ks",
+                        "data.table",
+                        "doParallel",
                         "h2o",
                         "RODBC",
                         "RJDBC"
