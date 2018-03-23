@@ -251,17 +251,17 @@ RxCharacteristics <- function (z, name, name1, name2){
   
   xh <- xh[,.(
     suma = sum(Hora_n),
-    m1 = mean(Hora_n),
-    m2 = moment(Hora_n, order=2),
-    m3 = moment(Hora_n, order=3),
-    sd = sd(Hora_n),
-    n = length(Hora_n),
-    moda = Mode(Hora_n),
-    q1 = quantile(Hora_n, 0.25),
-    q2 = median(Hora_n),
-    q3 = quantile(Hora_n, 0.75),
-    sesgo = skewness(Hora_n),
-    curtosis = kurtosis(Hora_n)
+    m1h = mean(Hora_n),
+    m2h = moment(Hora_n, order=2),
+    m3h = moment(Hora_n, order=3),
+    sdh = sd(Hora_n),
+    nh = length(Hora_n),
+    modah = Mode(Hora_n),
+    q1h = quantile(Hora_n, 0.25),
+    q2h = median(Hora_n),
+    q3h = quantile(Hora_n, 0.75),
+    sesgoh = skewness(Hora_n),
+    curtosish = kurtosis(Hora_n)
   ),by=agrupacion]
   
   xh <- rxDataStep(inData = xh, 
