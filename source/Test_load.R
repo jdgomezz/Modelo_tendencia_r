@@ -49,13 +49,13 @@ venta <- rxImport(inData = paste0('xdf_test/ventas_',i,'.xdf'),
 acum =  nrow(rxImport(paste0('xdf_test/ventas_',i,'.xdf')))
 file.remove(paste0('xdf_test/ventas_',i,'.xdf'))
 
-for (i in 0:(npart-1)){
+for (i in 1:46){
   rxImport(inData = paste0('xdf_test/ventas_',i,'.xdf'), 
            outFile= "xdf_test/ventas.xdf", append = "rows", 
            overwrite = TRUE)
   acum = acum + nrow(rxImport(paste0('xdf_test/ventas_',i,'.xdf')))
   print(acum)
-  file.remove(paste0('xdf_test/ventas_',i,'.xdf'))
+  #file.remove(paste0('xdf_test/ventas_',i,'.xdf'))
 }
 
 rxImport(inData = paste0('xdf_test/ventas.xdf'), 
@@ -64,3 +64,10 @@ rxImport(inData = paste0('xdf_test/ventas.xdf'),
 
 tf <- Sys.time()
 print(tf-ti)
+
+# ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
+
+chars_namefile1 <- "xdf_test/chs1.xdf"
+chars_namefile2 <- "xdf_test/chs2.xdf"
+chars_namefile <- "xdf_test/characteristics.xdf"
+xs <- RxCharacteristics(z = venta, name = chars_namefile, name1 = chars_namefile1, name2 = chars_namefile2)

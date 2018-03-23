@@ -250,7 +250,7 @@ RxCharacteristics <- function (z, name, name1, name2){
   xh <- data.table(rxImport(z))
   
   xh <- xh[,.(
-    suma = sum(Hora_n),
+    sumah = sum(Hora_n),
     m1h = mean(Hora_n),
     m2h = moment(Hora_n, order=2),
     m3h = moment(Hora_n, order=3),
