@@ -2,13 +2,10 @@ root <- '~/Agotado_en_gondola'
 source(paste0(root, '/source/Load_libs.R'))
 Load_libs(root)
 
-RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecuci贸n de la m谩quina a paralelo
+RxComputeContext("RxLocalParallel")          # Cambiar contexto de ejecuci贸n de la m谩quina a paralelo
 
-# ================ INSTRUCCIONES DE CARGA DE DATOS ======================
-# Cargar datos de venta utilizanzo funci贸n de R Open a partir de una consulta en Teradata e imprimir
-# una tabla de datos con formato xdf
-dep <- '35'
-#dep <- "41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569" # Dependencia(s)
+# =========================================== REGLAS DE NEGOCIO ========================================
+
 fi <- "'2018-01-01'"                         # Fecha inicial
 ff <- "'2018-03-20'"                         # Fecha final
 cut_registros <- 0                           # N煤mero m铆nimo de registro por plu-dep
@@ -17,26 +14,48 @@ cut_tiempo_vida <- 0                        # Tiempo de vida m铆nimo por plu-dep
 cut_proporcion <- 0                          # Proporci贸n de venta m铆nima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
 
-pars <- c(dep, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+pars <- c(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
 booleano <- TRUE
-file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
-filename <- 'xdf/ventas.xdf'
+query <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
 
-venta <- LoadXdf(file, filename, booleano, pars)
+# ================================== PAR罬ETROS DE CONEXI覰 Y PARALELIZACI覰 ============================
+
+npart = 20                                  # N鷐ero de particiones para la carga de informaci髇 hist髍ica
+nodes = 8                                   # N鷐ero de procesadores a utilizar
+querydep = "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL" # Query para extracci髇 de dependencias activas
+server = "10.2.113.66"                      # Direcci髇 IP del servidor
+user = "jdgomezz"                           # Usuario en servidor
+pwd = "jdgomezz01"                          # Contrase馻 de usuario en servidor
+path = "xdf/ventas"                         # Ruta de los archivos de salida
+
+# ======================================INSTRUCCIONES DE CARGA DE DATOS ===============================
+# Cargar datos de venta utilizanzo funci贸n de R Open a partir de una consulta en Teradata e imprimir
+# una tabla de datos con formato xdf
+
+venta <- Load_data_par(npart = npart,
+                       nodes = nodes, 
+                       params = pars,
+                       querydep = querydep, 
+                       query = query,
+                       server = server, 
+                       user = user,
+                       pwd = pwd, 
+                       path = path)
+  
 rxDataStep(inData = venta, outFile = venta, overwrite = TRUE, transforms = list(Hora_n = as.numeric(Hora)) )
 
-# ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
+# ====================== INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ================================
 
 chars_namefile1 <- "xdf/chs1.xdf"
 chars_namefile2 <- "xdf/chs2.xdf"
 chars_namefile <- "xdf/characteristics.xdf"
 xs <- RxCharacteristics(z = venta, name = chars_namefile, name1 = chars_namefile1, name2 = chars_namefile2)
 
-# =============== INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ESPECTRALES ============
+# ===================== INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ESPECTRALES ====================
 
-xs2 <- characteristics_classic(ventas)
+# Falta por construir este procedimiento
 
-# ================ INSTRUCCIONES PARA LA IDENTIFICACI脫N DE PATRONES ======================
+# ======================= INSTRUCCIONES PARA LA IDENTIFICACI脫N DE PATRONES =============================
 
 conn <- h2o.init(ip = "localhost", port=54321, nthreads = nth, max_mem_size = memo)
 h2o.removeAll() # Clean slate - just in case the cluster was already running
