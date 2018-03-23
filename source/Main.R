@@ -6,8 +6,8 @@ RxComputeContext("RxLocalParallel")          # Cambiar contexto de ejecuci√≥n de
 
 # =========================================== REGLAS DE NEGOCIO ========================================
 
-fi <- "'2018-01-01'"                         # Fecha inicial
-ff <- "'2018-03-20'"                         # Fecha final
+fi <- "'2018-03-21'"                         # Fecha inicial
+ff <- "'2018-03-21'"                         # Fecha final
 cut_registros <- 0                           # N√∫mero m√≠nimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de √∫ltima venta realizada
 cut_tiempo_vida <- 0                        # Tiempo de vida m√≠nimo por plu-dep ABS(Fecha 1ra venta - Fecha √∫ltima venta)
@@ -18,29 +18,46 @@ pars <- c(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporci
 booleano <- TRUE
 query <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
 
-# ================================== PAR¡METROS DE CONEXI”N Y PARALELIZACI”N ============================
+# ================================== PAR?METROS DE CONEXI?N Y PARALELIZACI?N ============================
 
-npart = 20                                  # N˙mero de particiones para la carga de informaciÛn histÛrica
-nodes = 8                                   # N˙mero de procesadores a utilizar
-querydep = "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL" # Query para extracciÛn de dependencias activas
-server = "10.2.113.66"                      # DirecciÛn IP del servidor
+npart = 20                                  # N?mero de particiones para la carga de informaci?n hist?rica
+nodes = 8                                   # N?mero de procesadores a utilizar
+querydep = "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL" # Query para extracci?n de dependencias activas
+server = "10.2.113.66"                      # Direcci?n IP del servidor
 user = "jdgomezz"                           # Usuario en servidor
-pwd = "jdgomezz01"                          # ContraseÒa de usuario en servidor
+pwd = "jdgomezz01"                          # Contrase?a de usuario en servidor
 path = "xdf/ventas"                         # Ruta de los archivos de salida
 
 # ======================================INSTRUCCIONES DE CARGA DE DATOS ===============================
 # Cargar datos de venta utilizanzo funci√≥n de R Open a partir de una consulta en Teradata e imprimir
 # una tabla de datos con formato xdf
 
-venta <- Load_data_par(npart = npart,
-                       nodes = nodes, 
-                       params = pars,
-                       querydep = querydep, 
-                       query = query,
-                       server = server, 
-                       user = user,
-                       pwd = pwd, 
-                       path = path)
+querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
+connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
+odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
+dep <- rxImport(odbcDS)$DependenciaCD
+npart <- 20
+delta <- round(length(dep)/npart)
+
+cl <-makeCluster(nodes)
+registerDoParallel(cl)
+system.time( 
+  result <- foreach (i = 0:(npart-1), .combine='cbind', .export = c('LoadXdf')) %dopar% {
+    deptemp <- dep[(1+i*delta):(1+(i+1)*delta)]
+    deptemp <- deptemp[!is.na(deptemp)]
+    deptemp <- paste(deptemp, collapse = ', ')
+    pars <- c(deptemp, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+    
+    venta <- LoadXdf(server = server,
+                     uid = user,
+                     pwd = pwd,
+                     file = query, 
+                     filename = paste0('xdf/ventas_',i,'.xdf'),
+                     booleano = booleano, 
+                     pars = pars)
+    print(paste0('Finalizado iteracion ',i))
+  })
+  stopCluster(cl)
   
 rxDataStep(inData = venta, outFile = venta, overwrite = TRUE, transforms = list(Hora_n = as.numeric(Hora)) )
 

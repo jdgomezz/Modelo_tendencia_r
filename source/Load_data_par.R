@@ -15,6 +15,8 @@ result <- foreach (i = 0:(npart-1), .combine='cbind', .export = c('LoadXdf')) %d
   deptemp <- deptemp[!is.na(deptemp)]
   deptemp <- paste(deptemp, collapse = ', ')
   pars <- c(deptemp, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+  
+  
   venta <- LoadXdf(file, paste0('xdf/ventas_',i,'.xdf'), booleano, pars)
   print(paste0('Finalizado iteracion ',i))
 })

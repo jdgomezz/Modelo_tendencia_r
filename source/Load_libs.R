@@ -16,8 +16,7 @@ Load_libs <- function(root){
                         "h2o",
                         "RODBC",
                         "RJDBC",
-                        "RCurl",
-                        "doParallel"
+                        "RCurl"
   )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
