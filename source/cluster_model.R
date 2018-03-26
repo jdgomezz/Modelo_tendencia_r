@@ -2,9 +2,9 @@
 cluster_model <- function(xs, k_n, nth, memo, dep){
   t_start <- Sys.time()
   
-  xs.hex <- as.h2o(xs);          # Conversión a formato de datos de h2o
+  xs.hex <- as.h2o(rxImport(xs));          # Conversión a formato de datos de h2o
   
-  xs.hex <- xs.hex[xs.hex[, "DependenciaCD"] == dep, ]
+  #xs.hex <- xs.hex[xs.hex[, "DependenciaCD"] == dep, ]
   xs.hex[,1] <- as.factor(xs.hex[,1]) # Dependencia
   xs.hex[,2] <- as.factor(xs.hex[,2]) # Plu
   xs.hex[,3] <- as.factor(xs.hex[,3]) # dia
@@ -19,8 +19,14 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   valid <- h2o.assign(splits[[2]], "valid.hex")   ## R valid, H2O valid.hex
   test <- h2o.assign(splits[[3]], "test.hex")     ## R test, H2O test.hex
   
-  y <- c("m1", "m2", "m3", "sd", "moda", "q1", "q2", "q3", "sesgo", "curtosis", "asim_fisher", "asim_pearson0",  "asim_pearson", "asim_bowley", "m1h", "m2h", "m3h", "sdh",  "modah", "q1h", "q2h", "q3h", "sesgoh", "curtosish", "asim_fisherh",   "asim_pearson0h", "asim_pearsonh",  "asim_bowleyh")
-
+  #y <- c("m1", "m2", "m3", "sd", "moda", "q1", "q2", "q3", "sesgo", "curtosis", "asim_fisher", "asim_pearson0",  "asim_pearson", "asim_bowley", "m1h", "m2h", "m3h", "sdh",  "modah", "q1h", "q2h", "q3h", "sesgoh", "curtosish", "asim_fisherh",   "asim_pearson0h", "asim_pearsonh",  "asim_bowleyh")
+  
+  #y <- c("m1", "sd", "moda", "q1", "q2", "q3", "asim_pearson", "asim_bowley",
+  #       "m1h", "sdh",  "modah", "q1h", "q2h", "q3h", "asim_pearsonh",  "asim_bowleyh")
+  
+  y <- c("m1", "moda", "q1", "q2", "q3", "asim_pearson",
+         "m1h", "modah", "q1h", "q2h", "q3h", "asim_pearsonh")
+  
   x <- setdiff(names(train), y);  #vector of predictor column names
   x <- x[1:3];                    # Variables independientes: dep / plu / dia
   

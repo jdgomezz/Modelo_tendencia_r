@@ -1,3 +1,5 @@
+rm(list = ls())
+
 root <- '~/Agotado_en_gondola'
 source(paste0(root, '/source/Load_libs.R'))
 Load_libs(root)
@@ -39,8 +41,8 @@ system.time(
     venta <- LoadXdf(file, paste0('xdf/ventas_',i,'.xdf'), booleano, pars)
     print(paste0('Finalizado iteracion ',i))
   })
-  stopCluster(cl)
-  rm(cl)
+   on.exit(stopCluster(cl))
+   rm(cl)
 
    i <- 0
    venta <- rxImport(inData = paste0('xdf/ventas_',i,'.xdf'), 
@@ -67,13 +69,55 @@ chars_namefile <- "xdf/characteristics.xdf"
 xs <- RxCharacteristics(z = venta, name = chars_namefile, name1 = chars_namefile1, name2 = chars_namefile2)
 
 # ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
+nth <- 8
+memo <- '32g'
 
 conn <- h2o.init(ip = "localhost", port=54321, nthreads = nth, max_mem_size = memo)
 h2o.removeAll() # Clean slate - just in case the cluster was already running
 
-model <- cluster_model(xs = xs, k_n = 100, nth = 2, memo ='4g', dep = 35)
+model <- cluster_model(xs = xs, k_n = 60, nth = nth, memo = memo, dep = 35)
+
+# ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÓN =====================
+
+# centroides
+
+centros <- as.matrix(model[[1]]@model$centers)
+storage.mode(centros) <- "numeric"
+centros <- data.frame(centros[, 2:ncol(centros)])
+
+chars <- model[[1]]@parameters$x
+
+i <- 1
+j <- 2
+k <- 4
+
+i <- 15
+j <- 19
+k <- 21
+
+i <- 1
+j <- 5
+k <- 7
+
+tamano <- as.matrix(model[[1]]@model$cross_validation_metrics@metrics$centroid_stats)
+storage.mode(tamano)
+
+centros <- centros[tamano[, 2] != 0, ]
+tamano <- tamano[tamano[,2] != 0, ]
+
+plot_ly(data = centros, 
+        x = ~centros[, i], 
+        y = ~centros[, j], 
+        z = ~centros[, k],
+        color = ~tamano[, 2],
+        size = ~tamano[, 2],
+        marker =  list(symbol = 'circle', sizemode = 'diameter'),
+        sizes = c(5, 150)) %>% add_markers() %>% layout(scene = list(xaxis = list(title = chars[i], range = c(0, 10)),
+                                                                    yaxis = list(title = chars[j], range = c(0, 50)),
+                                                               zaxis = list(title = chars[k], range = c(0, 20))))
 
 library(mailR)
+
 
 send.mail(from = "jgomezz101@gmail.com",                                                     # Desde
           to = "juan.fernandez@idata.com.co",                                                          # Para
