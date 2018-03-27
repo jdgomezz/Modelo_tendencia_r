@@ -1,5 +1,5 @@
 
-cluster_model <- function(xs, k_n, nth, memo, dep){
+cluster_model <- function(xs, k_n, nth, memo, dep, y){
   t_start <- Sys.time()
   
   xs.hex <- as.h2o(rxImport(xs));          # Conversión a formato de datos de h2o
@@ -18,14 +18,6 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   train <- h2o.assign(splits[[1]], "train.hex")   ## assign the first result the R variable train and the H2O name train.hex
   valid <- h2o.assign(splits[[2]], "valid.hex")   ## R valid, H2O valid.hex
   test <- h2o.assign(splits[[3]], "test.hex")     ## R test, H2O test.hex
-  
-  #y <- c("m1", "m2", "m3", "sd", "moda", "q1", "q2", "q3", "sesgo", "curtosis", "asim_fisher", "asim_pearson0",  "asim_pearson", "asim_bowley", "m1h", "m2h", "m3h", "sdh",  "modah", "q1h", "q2h", "q3h", "sesgoh", "curtosish", "asim_fisherh",   "asim_pearson0h", "asim_pearsonh",  "asim_bowleyh")
-  
-  #y <- c("m1", "sd", "moda", "q1", "q2", "q3", "asim_pearson", "asim_bowley",
-  #       "m1h", "sdh",  "modah", "q1h", "q2h", "q3h", "asim_pearsonh",  "asim_bowleyh")
-  
-  y <- c("m1", "moda", "q1", "q2", "q3", "asim_pearson",
-         "m1h", "modah", "q1h", "q2h", "q3h", "asim_pearsonh")
   
   x <- setdiff(names(train), y);  #vector of predictor column names
   x <- x[1:3];                    # Variables independientes: dep / plu / dia
@@ -77,41 +69,9 @@ cluster_model <- function(xs, k_n, nth, memo, dep){
   return(output)
 }
 
-  # Estimación de densidad de probabilidad con el kernel density estimation package 
-  # para hallar las distribuciones de los patrones
-  
-  library(ks);
-  
-  deps <- h2o.unique(patrones[, 1]);
-  plus <- h2o.unique(patrones[, 2]);
-  dias <- h2o.unique(patrones[, 3]);
-  
-  dat <- data.frame(data$Pluid, data$dia, data$Hora, data$UnidadesVerdaderas);
-  dat$concat <- paste(dat$data.Pluid, dat$data.dia, sep = "-");
-  
-  patrones <- as.data.frame(patrones);
-  patrones$concat <- paste(patrones$Pluid, patrones$dia, sep = "-");
-  
-  dat <- dat[dat$concat %in% patrones$concat, ];
-  
-  dat2 <- data.frame(data$Pluid, data$dia, data$Hora, data$UnidadesVerdaderas);
-  dat2$concat <- paste(dat2$data.Pluid, dat2$data.dia, sep = "-");
-  
-  #for (i in 1:nc){
-  #  auxdata <- dat[dat$concat == patrones[i, "concat"], ]
-  #  auxdata <- auxdata[, !(names(auxdata) %in% c("concat", "data.Pluid", "data.dia"))]
-  #  print(nrow(auxdata));
-  #  Hpi1 <- Hpi(x=auxdata);
-  #  fhat.pi1 <- kde(x=auxdata, H=Hpi1);
-  #  u <- fhat.pi1$eval.points[[1]];
-  #  v <- fhat.pi1$eval.points[[2]];
-  #  est_dist <- fhat.pi1$estimate/sum(fhat.pi1$estimate)
-  #  plot_ly(x = v, y = u, z= est_dist) %>% add_surface() 
-  #}
-  
   # Verificar si los clusters son los adecuados.
   
-  cluster_model.fit = h2o.predict(object = cluster_model,  newdata = valid);
+  cluster_model.fit = h2o.predict(object = model[1],  newdata = valid);
   cluster_model.fit = as.data.frame(cluster_model.fit);
   
   I = 45; # Cluster
