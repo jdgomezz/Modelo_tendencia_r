@@ -1,26 +1,36 @@
 rm(list = ls())
 setwd("~/")
 root <- '~/Agotado_en_gondola'
-inSource <- "xdf_test/"
-landing <- "xdf_test/"
-model_lib <- "xdf_test/"
-output_lib <- "xdf_test/"
+inSource <- "xdf/"
+landing <- "xdf/"
+model_lib <- "xdf/"
+output_lib <- "xdf/"
+
+# ================== DECLARACIÓN DE LIBRERIAS EXTERNAS Y PROPIAS ===================
 
 source(paste0(root, '/source/Load_libs.R'))
 Load_libs(root)
 
 RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máquina a paralelo
 
-# ================ INSTRUCCIONES DE CARGA DE DATOS ======================
+# ======================== LIMPIEZA DE TODOS LOS DIRECTORIOS ==============================
+
+system(paste0("rm -r ", inSource, "*.xdf"))
+system(paste0("rm -r ", landing, "*.xdf"))
+system(paste0("rm -r ", model, "*.xdf"))
+system(paste0("rm -r ", output, "*.xdf"))
+                            
+# ================ INSTRUCCIONES DE CARGA DE DATOS ========================================
+
 # Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
 # una tabla de datos con formato xdf
 
-fi <- "'2018-03-19'"                         # Fecha inicial
-ff <- "'2018-03-20'"                         # Fecha final
-cut_registros <- 0                           # Número mínimo de registro por plu-dep
+fi <- "'2018-01-01'"                         # Fecha inicial
+ff <- "'2018-03-25'"                         # Fecha final
+cut_registros <- 30                          # Número mínimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
-cut_tiempo_vida <- 0                        # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
-cut_proporcion <- 0                          # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
+cut_tiempo_vida <- 0                         # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
+cut_proporcion <- 1                          # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
 
 booleano <- TRUE
@@ -31,7 +41,7 @@ querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
 connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
 odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
 dep <- rxImport(odbcDS)$DependenciaCD
-npart <- 20
+npart <- 40
 delta <- round(length(dep)/npart)
 nodes <- 8
 
@@ -46,34 +56,32 @@ system.time(
     LoadXdf(file, paste0(inSource, 'ventas_',i,'.xdf'), booleano, pars)
     print(paste0('Finalizado iteracion ',i))
   })
-   on.exit(stopCluster(cl))
+   stopCluster(cl)
    rm(cl)
 
    i <- 0
    venta <- rxImport(inData = paste0(inSource,'ventas_',i,'.xdf'), 
             outFile = outfile_ventas, overwrite = TRUE)
    acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
-   file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
+   #file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    
-   xs <- rx
    for (i in 1:(npart-1)){
        venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
                          outFile= outfile_ventas,
                          append = "rows", 
                          overwrite = TRUE)
       acum = acum + nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
-      print(acum)
-      file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
+      print(i)
+     # file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    }
     
    rxDataStep(inData = venta, 
               outFile = venta,
               overwrite = TRUE,
               transforms = 
-              list(Hora_n = as.numeric(Hora)) )
+              list(Hora_n = as.numeric(Hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
 
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
-
 chars_namefile1 <- paste0(landing, "chs1.xdf")
 chars_namefile2 <-  paste0(landing, "chs2.xdf")
 chars_namefile <-  paste0(landing, "characteristics.xdf")
@@ -115,12 +123,12 @@ chars <- model[[1]]@parameters$x
 
 # Escoger las características a visualizar
 
-i <- 1
-j <- 2
-k <- 4
+i <- 6
+j <- 12
+k <- 12
 
 tamano <- as.matrix(model[[1]]@model$cross_validation_metrics@metrics$centroid_stats)
-storage.mode(tamano)
+storage.mode(tamano) <- "numeric"
 
 # Omitir los grupos que no tengan muestras
 
@@ -136,31 +144,31 @@ plot_ly(data = centros,
         color = ~tamano[, 2],
         size = ~tamano[, 2],
         marker =  list(symbol = 'circle', sizemode = 'diameter'),
-        sizes = c(5, 150)) %>% add_markers() %>% layout(scene = list(xaxis = list(title = chars[i], range = c(0, 10)),
-                                                                     yaxis = list(title = chars[j], range = c(0, 50)),
-                                                                     zaxis = list(title = chars[k], range = c(0, 20))))
+        sizes = c(5, 150)) %>% add_markers() %>% layout(scene = list(xaxis = list(title = chars[i], range = c(-5, 5)),
+                                                                     yaxis = list(title = chars[j], range = c(-5, 5)),
+                                                                     zaxis = list(title = chars[k], range = c(-5, 5))))
 
 # ===== CONSTRUCCIÓN DE PATRONES A TRAVÉS DE LA ESTIMACIÓN DE FUNCIONES DE DENSIDAD CON KERNEL GAUSSIANO ===================================
 
 # Estimación de densidad de probabilidad con el kernel density estimation package 
 # para hallar las distribuciones de los patrones
+ 
+patrones <- as.matrix(model[[2]])
+storage.mode(patrones) <- "numeric"
 
-rxDataStep(inData = outfile_ventas,
-           outFile = outfile_ventas, 
-           overwrite = TRUE, 
-           transforms = list(concat = paste0(Pluid,"-", DependenciaCD, "-", dia) ))
+patrones <- data.frame(Pluid = patrones[, 1], DependenciaCD = patrones[, 2], dia = patrones[, 3])
+patrones$concat <- paste0(patrones$Pluid,"-", patrones$DependenciaCD, "-", patrones$dia)
 
-patrones$concat <- paste0(patrones$Pluid,"-", patrones$DependenciaCD, "-", patrones$dia);
-rxImport(inData = patrones, outFile = paste0(model_lib, "patrones.xdf"));
+rxImport(inData = patrones, outFile = paste0(model_lib, "patrones.xdf"), overwrite = TRUE);
 
-xs <- rxMerge(inData1 = outfile_ventas,
+venta_f <- rxMerge(inData1 = outfile_ventas,
               inData2 = paste0(model_lib, "patrones.xdf"),
               outFile = paste0(model_lib, "venta_f.xdf"),
               matchVars = c("concat"), 
               type = "inner",
               overwrite = TRUE)
 
-data <- rxImport(xs)
+data <- rxImport(paste0(model_lib, "venta_f.xdf"))
 
 dat <- data.frame(concat = data$concat,
                   Pluid = data$Pluid.ventas,
@@ -207,7 +215,7 @@ write.csv(pattern, file = paste0(output_lib, "patterns.csv"))
 
 # ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÓN =====================
 
-system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.138/data/LZ/Agotados/Datos/patterns.csv')
+system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/patterns.csv')
 
 library(mailR)
 
