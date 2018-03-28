@@ -1,11 +1,11 @@
 rm(list = ls())
 setwd("~/")
 wd <- getwd()
-root <- paste0(wd, '/modelo_tendencia_r')
-inSource <- "xdf/"
-landing <- "xdf/"
-model_lib <- "xdf/"
-output_lib <- "xdf/"
+root <- paste0(wd, '/Agotado_en_gondola')
+inSource <- "xdf_test2/"
+landing <- "xdf_test2/"
+model_lib <- "xdf_test2/"
+output_lib <- "xdf_test2/"
 
 # ================== DECLARACIÓN DE LIBRERIAS EXTERNAS Y PROPIAS ===================
 
@@ -27,10 +27,10 @@ system(paste0("rm -r ", output_lib, "*.xdf"))
 # una tabla de datos con formato xdf
 
 fi <- "'2018-01-01'"                         # Fecha inicial
-ff <- "'2018-03-25'"                         # Fecha final
+ff <- "'2018-03-27'"                         # Fecha final
 cut_registros <- 30                          # Número mínimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
-cut_tiempo_vida <- 0                         # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
+cut_tiempo_vida <- 30                         # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
 cut_proporcion <- 1                          # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
 
@@ -38,11 +38,11 @@ booleano <- TRUE
 file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
 outfile_ventas <- paste0(inSource, 'ventas.xdf')
 
-querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
+querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
 connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
 odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
 dep <- rxImport(odbcDS)$DependenciaCD
-npart <- 40
+npart <- 8
 delta <- round(length(dep)/npart)
 nodes <- 8
 
@@ -54,7 +54,7 @@ system.time(
     deptemp <- deptemp[!is.na(deptemp)]
     deptemp <- paste(deptemp, collapse = ', ')
     pars <- c(deptemp, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
-    LoadXdf(file, paste0(inSource, 'ventas_',i,'.xdf'), booleano, pars)
+    LoadXdf(file, paste0(file = inSource, filename ='ventas_',i,'.xdf'), booleano = booleano, pars = pars)
     print(paste0('Finalizado iteracion ',i))
   })
    stopCluster(cl)
@@ -66,7 +66,7 @@ system.time(
    acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
    #file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    
-   for (i in 2:2){
+   for (i in 1:npart){
        venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
                          outFile= outfile_ventas,
                          append = "rows", 
@@ -162,7 +162,7 @@ patrones$concat <- paste0(patrones$Pluid,"-", patrones$DependenciaCD, "-", patro
 
 patterns <- rxImport(inData = patrones, outFile = paste0(model_lib, "patrones.xdf"), overwrite = TRUE)
 
-venta_f <- rxMerge(inData1 = venta,
+venta_f <- rxMerge(inData1 = outfile_ventas,
               inData2 = patterns,
               outFile = paste0(model_lib, "venta_f.xdf"),
               matchVars = c("concat"), 
@@ -218,7 +218,7 @@ for (i in 1:nc){
 write.csv(pattern, file = paste0(output_lib, "patterns.csv"))
 system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/patterns.csv')
 
-# =================== VALIDACI�N DE PATRONES (verificar si los miembros de los grupos si son similares a sus centroides) ==============
+# =================== VALIDACI?N DE PATRONES (verificar si los miembros de los grupos si son similares a sus centroides) ==============
 
 
 
