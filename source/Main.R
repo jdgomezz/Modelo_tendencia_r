@@ -1,6 +1,7 @@
 rm(list = ls())
 setwd("~/")
-root <- '~/Agotado_en_gondola'
+wd <- getwd()
+root <- paste0(wd, '/modelo_tendencia_r')
 inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
@@ -17,8 +18,8 @@ RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máqu
 
 system(paste0("rm -r ", inSource, "*.xdf"))
 system(paste0("rm -r ", landing, "*.xdf"))
-system(paste0("rm -r ", model, "*.xdf"))
-system(paste0("rm -r ", output, "*.xdf"))
+system(paste0("rm -r ", model_lib, "*.xdf"))
+system(paste0("rm -r ", output_lib, "*.xdf"))
                             
 # ================ INSTRUCCIONES DE CARGA DE DATOS ========================================
 
@@ -59,13 +60,13 @@ system.time(
    stopCluster(cl)
    rm(cl)
 
-   i <- 0
+   i <- 1
    venta <- rxImport(inData = paste0(inSource,'ventas_',i,'.xdf'), 
             outFile = outfile_ventas, overwrite = TRUE)
    acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
    #file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    
-   for (i in 1:(npart-1)){
+   for (i in 2:2){
        venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
                          outFile= outfile_ventas,
                          append = "rows", 
@@ -92,8 +93,8 @@ xs <- RxCharacteristics(z = venta,
                         name2 = chars_namefile2)
 
 # ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
-nth <- 8      # Número de procesadores a utilizar
-memo <- '32g' # Memoria RAM a utilizar
+nth <- 4      # Número de procesadores a utilizar
+memo <- '8g' # Memoria RAM a utilizar
 k_n <- 60     # Número de clusters deseados
 
 conn <- h2o.init(ip = "localhost",
@@ -156,19 +157,19 @@ plot_ly(data = centros,
 patrones <- as.matrix(model[[2]])
 storage.mode(patrones) <- "numeric"
 
-patrones <- data.frame(Pluid = patrones[, 1], DependenciaCD = patrones[, 2], dia = patrones[, 3])
+patrones <- data.frame(Pluid = patrones[, 2], DependenciaCD = patrones[, 1], dia = patrones[, 3])
 patrones$concat <- paste0(patrones$Pluid,"-", patrones$DependenciaCD, "-", patrones$dia)
 
-rxImport(inData = patrones, outFile = paste0(model_lib, "patrones.xdf"), overwrite = TRUE);
+patterns <- rxImport(inData = patrones, outFile = paste0(model_lib, "patrones.xdf"), overwrite = TRUE)
 
-venta_f <- rxMerge(inData1 = outfile_ventas,
-              inData2 = paste0(model_lib, "patrones.xdf"),
+venta_f <- rxMerge(inData1 = venta,
+              inData2 = patterns,
               outFile = paste0(model_lib, "venta_f.xdf"),
               matchVars = c("concat"), 
               type = "inner",
               overwrite = TRUE)
 
-data <- rxImport(paste0(model_lib, "venta_f.xdf"))
+data <- rxImport(venta_f)
 
 dat <- data.frame(concat = data$concat,
                   Pluid = data$Pluid.ventas,
@@ -209,13 +210,17 @@ for (i in 1:nc){
   
   pattern <- cbind(aux, pattern)
   # convertir la matriz en un vector
-  #plot_ly(x = v, y = u, z= est_dist) %>% add_surface() 
+  plot_ly(x = v, y = u, z= est_dist) %>% add_surface() 
 }
-write.csv(pattern, file = paste0(output_lib, "patterns.csv"))
 
 # ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÓN =====================
 
+write.csv(pattern, file = paste0(output_lib, "patterns.csv"))
 system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/patterns.csv')
+
+# =================== VALIDACI�N DE PATRONES (verificar si los miembros de los grupos si son similares a sus centroides) ==============
+
+
 
 library(mailR)
 
