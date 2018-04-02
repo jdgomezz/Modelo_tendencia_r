@@ -15,7 +15,7 @@ td <- function (server = '10.2.113.66',
 td_Xdf <- function(server = '10.2.113.66', 
                     uid = 'jdgomezz', 
                     pwd = 'jdgomezz01', 
-                    query = "select top 10 * from bd_ddpo.vwventashora",
+                    query = "select top 10 * from bd_ddpo.vtsublinea",
                     name = "xdf/venta.xdf",
                     booleano = TRUE){
   

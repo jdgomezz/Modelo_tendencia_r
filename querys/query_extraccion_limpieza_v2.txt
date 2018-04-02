@@ -1,0 +1,207 @@
+select zz.DependenciaCD, 
+	     ciu.subzonacd,
+			 dep.ciudadcd,
+			 zz.Pluid,
+			 plu.plucd,
+			 art.articuloid,
+			 art.subcategoriacd,
+			 art.categoriacd,
+			 art.sublineacd,
+			 subl.subdireccioncd,
+			 subdir.direccioncd,
+			 data_master.Fecha,
+			 daynumber_of_week(data_master.Fecha) as dia,
+			 monthnumber_of_year(data_master.Fecha) as mes,
+			 (cast(data_master.hora as integer)) as hora,
+			 prod.SaleFactor,
+			 data_master.UnidadesVendidas,
+			 CAST(round(data_master.UnidadesVendidas*prod.SaleFactor) as integer) as undsReales,
+		   data_master.maxDecil,
+			 data_master.CorteMax,
+			 data_master.CorteMean,
+			 data_master.CorteMin,
+			 zz.registros,
+			 zz.Primera_Venta,
+			 zz.Ultima_Venta,
+       zz.Tiempo_de_vida,
+       zz.Proporcion
+       from (select z.DependenciaCD, 
+          				  z.Pluid,
+          				  count(z.Pluid) as registros,
+          				  min(z.Fecha) as Primera_Venta,
+          				  max(z.Fecha) as Ultima_Venta,
+                    (max(z.Fecha))-(min(z.Fecha))+1 as Tiempo_de_vida,
+          				  (CAST(100.0*(count(z.Pluid))/((max(z.Fecha))-(min(z.Fecha))+1) AS DECIMAL(38,10))/100.0) as Proporcion
+      		   from (select data.DependenciaCD, 
+              						data.Pluid,
+              						data.Fecha,
+              						data.hora,
+              						data.UnidadesVendidas,
+              		        yy.maxDecil,
+              						yy.CorteMax,
+              						yy.CorteMean,
+              						yy.CorteMin
+        			     from (select xx.DependenciaCD,
+              							    xx.Pluid,
+              							    xx.maxDecil,
+              							    y.CorteMax,
+              							    y.CorteMean,
+              							    y.CorteMin	
+      			             from( select x.DependenciaCD,
+      							                  x.Pluid,
+      								                max(x.decil) as maxDecil
+              						      from ( select a.DependenciaCD, 
+              											          a.Pluid,
+              											          a.decil,
+              								               max(a.UnidadesVendidas) as CorteMax,
+              											         avg(a.UnidadesVendidas) as CorteMean,
+              											         min(a.UnidadesVendidas) as CorteMin
+              								        from (select t1.DependenciaCD, 
+              										        	       t1.Pluid,
+              											    	         t1.Fecha,
+              											    	         t1.hora,
+              													           t1.UnidadesVendidas,
+              													           quantile(&n_deciles., t1.UnidadesVendidas) as decil
+                      											from bd_ddpo.vwventashora t1
+                      											where (t1.DependenciaCD in (&dep.)) and 
+                      											      (t1.Fecha between &fi and &ff) and 
+                      											      (t1.UnidadesVendidas > 0)
+                      											group by t1.DependenciaCD,
+                      											         t1.Pluid
+                      								      ) a
+              									      group by a.DependenciaCD, 
+              									               a.Pluid,
+              											           a.decil
+              									) x
+      							       group by x.DependenciaCD,
+      								              x.Pluid
+      			               ) xx
+      							inner join (select a.DependenciaCD, 
+      											           a.Pluid,
+      											           a.decil,
+      								                 max(a.UnidadesVendidas) as CorteMax,
+              											   avg(a.UnidadesVendidas) as CorteMean,
+              											   min(a.UnidadesVendidas) as CorteMin
+      										       from (select t1.DependenciaCD, 
+      												        	      t1.Pluid,
+              													    	t1.Fecha,
+              													    	t1.hora,
+              															  t1.UnidadesVendidas,
+      															          quantile(&n_deciles., t1.UnidadesVendidas) as decil
+      														     from bd_ddpo.vwventashora t1
+      														     where (t1.DependenciaCD in (&dep.)) and 
+      														           (t1.Fecha between &fi and &ff) and 
+      														           (t1.UnidadesVendidas > 0)
+      														     group by t1.DependenciaCD,
+      														              t1.Pluid
+      														    ) a
+      											    group by a.DependenciaCD, 
+      														       a.Pluid,
+      														       a.decil
+      			                   ) y on xx.Pluid = y.Pluid and xx.DependenciaCD = y.DependenciaCD and xx.maxDecil = y.decil
+      				    ) yy
+      						inner join (select t1.DependenciaCD, 
+      										           t1.Pluid,
+              											 t1.Fecha,
+              											 t1.hora,
+              											 t1.UnidadesVendidas
+              											 from bd_ddpo.vwventashora t1
+      											  where (t1.DependenciaCD in (&dep.)) and 
+      											        (t1.Fecha between &fi and &ff) and 
+      											        (t1.UnidadesVendidas > 0)
+      		                    ) data on data.DependenciaCD = yy.DependenciaCD and data.Pluid = yy.Pluid
+      						              where data.UnidadesVendidas <= yy.CorteMin
+      			   ) z
+			   group by z.DependenciaCD, 
+				          z.Pluid
+		) zz
+		inner join (select data.DependenciaCD, 
+          						 data.Pluid,
+          						 data.Fecha,
+          						 data.hora,
+          						 data.UnidadesVendidas,
+		                   yy.maxDecil,
+          						 yy.CorteMax,
+          						 yy.CorteMean,
+          						 yy.CorteMin
+			         from ( select xx.DependenciaCD,
+          								   xx.Pluid,
+          								   xx.maxDecil,
+          								   y.CorteMax,
+          								   y.CorteMean,
+          								   y.CorteMin	
+				              from( select x.DependenciaCD,
+								                   x.Pluid,
+									                 max(x.decil) as maxDecil
+        							      from ( select  a.DependenciaCD, 
+        												   a.Pluid,
+        												   a.decil,
+        									         max(a.UnidadesVendidas) as CorteMax,
+        												   avg(a.UnidadesVendidas) as CorteMean,
+        												   min(a.UnidadesVendidas) as CorteMin
+        									         from (select t1.DependenciaCD, 
+        											        	        t1.Pluid,
+        												    	          t1.Fecha,
+        												    	          t1.hora,
+        														            t1.UnidadesVendidas,
+        														            quantile(&n_deciles., t1.UnidadesVendidas) as decil
+        												        from bd_ddpo.vwventashora t1
+        												        where (t1.DependenciaCD in (&dep.)) and 
+        												              (t1.Fecha between &fi and &ff) and 
+        												              (t1.UnidadesVendidas > 0)
+        												        group by t1.DependenciaCD,
+        												                 t1.Pluid
+        												   ) a
+        										  group by a.DependenciaCD, 
+        										           a.Pluid,
+        												       a.decil
+        										) x
+								            group by x.DependenciaCD,
+									                   x.Pluid
+				                ) xx
+								        inner join (select a.DependenciaCD, 
+                												   a.Pluid,
+                												   a.decil,
+                									         max(a.UnidadesVendidas) as CorteMax,
+                												   avg(a.UnidadesVendidas) as CorteMean,
+                												   min(a.UnidadesVendidas) as CorteMin
+                											     from (select t1.DependenciaCD, 
+                													          	  t1.Pluid,
+                														    	      t1.Fecha,
+                														    	      t1.hora,
+                																        t1.UnidadesVendidas,
+                																        quantile(&n_deciles., t1.UnidadesVendidas) as decil
+                															    from bd_ddpo.vwventashora t1
+                															    where (t1.DependenciaCD in (&dep.)) and 
+                															          (t1.Fecha between &fi and &ff) and 
+                															          (t1.UnidadesVendidas > 0)
+                															    group by t1.DependenciaCD,
+                															             t1.Pluid
+                															   ) a
+                												    group by a.DependenciaCD, 
+                															       a.Pluid,
+                															       a.decil
+				                            ) y on xx.Pluid = y.Pluid and xx.DependenciaCD = y.DependenciaCD and xx.maxDecil = y.decil
+					         ) yy
+							 inner join (select t1.DependenciaCD, 
+											            t1.Pluid,
+          												t1.Fecha,
+          												t1.hora,
+          												t1.UnidadesVendidas
+          												from bd_ddpo.vwventashora t1
+												   where (t1.DependenciaCD in (&dep.)) and 
+												         (t1.Fecha between &fi and &ff) and 
+												         (t1.UnidadesVendidas > 0)
+			                    ) data on data.DependenciaCD = yy.DependenciaCD and data.Pluid = yy.Pluid
+							 where data.UnidadesVendidas <= yy.CorteMin
+                    ) data_master on data_master.Pluid = zz.Pluid and data_master.DependenciaCD = zz.DependenciaCD
+				 left join (select * from bd_ddpo.vwplu2) prod on data_master.pluid = prod.PluID
+				 left join (select * from bd_ddpo.vtplu) plu on data_master.pluid = plu.pluid
+			   inner join (select * from bd_ddpo.vtArticulo) art on plu.articuloid = art.articuloid
+				 inner join (select * from bd_ddpo.vtsublinea) subl on art.sublineacd = subl.sublineacd
+			   inner join (select * from bd_ddpo.vtsubdireccion) subdir on subl.subdireccioncd = subdir.subdireccioncd
+				 inner join (select * from bd_ddpo.vtdependencia) dep on data_master.dependenciacd =  dep.dependenciacd  
+			   inner join (select * from bd_ddpo.vtciudad) ciu on ciu.ciudadcd =  dep.ciudadcd  
+         where zz.Tiempo_de_vida >= &cut_tiempo_vida. and 
+               zz.Proporcion >= &cut_proporcion. and
+				       zz.registros >= &cut_registros.

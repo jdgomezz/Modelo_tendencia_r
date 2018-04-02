@@ -1,12 +1,12 @@
 rm(list = ls())
 # Onlinux
-#setwd("~/")
+setwd("~/")
 
 # On Windows
-setwd("C:/Users/User/Desktop")
+#setwd("C:/Users/User/Desktop")
 
 wd <- getwd()
-root <- paste0(wd, '/modelo_tendencia_r')
+root <- paste0(wd, '/Agotado_en_gondola')
 inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
@@ -32,24 +32,26 @@ system(paste0("rm -r ", output_lib, "*.xdf"))
 # una tabla de datos con formato xdf
 
 fi <- "'2018-01-01'"                         # Fecha inicial
-ff <- "'2018-03-27'"                         # Fecha final
-cut_registros <- 30                          # NÃºmero mÃ?nimo de registro por plu-dep
+ff <- "'2018-03-31'"                         # Fecha final
+cut_registros <- 0                          # NÃºmero m??nimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de Ãºltima venta realizada
-cut_tiempo_vida <- 30                         # Tiempo de vida mÃ?nimo por plu-dep ABS(Fecha 1ra venta - Fecha Ãºltima venta)
-cut_proporcion <- 1                          # ProporciÃ³n de venta mÃ?nima (Nro. registros)/(Tiempo de vida)
+cut_tiempo_vida <- 30                         # Tiempo de vida m??nimo por plu-dep ABS(Fecha 1ra venta - Fecha Ãºltima venta)
+cut_proporcion <- 1                          # ProporciÃ³n de venta m??nima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
 
 booleano <- TRUE
-file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza.txt'
+file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza_v2.txt'
 outfile_ventas <- paste0(inSource, 'ventas.xdf')
 
-querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
+#querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
+
+querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (35, 33)"
 connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
 odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
 dep <- rxImport(odbcDS)$DependenciaCD
-npart <- 2
+npart <- 1
 delta <- round(length(dep)/npart)
-nodes <- 2
+nodes <- 8
 
 cl <-makeCluster(nodes)
 registerDoParallel(cl)
@@ -66,13 +68,13 @@ system.time(
    stopCluster(cl)
    rm(cl)
 
-   i <- 1
+   i <- 0
    venta <- rxImport(inData = paste0(inSource,'ventas_',i,'.xdf'), 
             outFile = outfile_ventas, overwrite = TRUE)
    acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
    #file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    
-   for (i in 2:npart){
+   for (i in 1:(npart-1)){
        venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
                          outFile= outfile_ventas,
                          append = "rows", 
@@ -82,19 +84,16 @@ system.time(
      # file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
    }
    
-venta0 = "xdf/ventas_3.xdf"
-venta = "xdf/ventas_30.xdf"
-
-rxDataStep(inData = venta0, 
+rxDataStep(inData = venta, 
               outFile = venta,
               overwrite = TRUE,
               transforms = 
-              list(Hora_n = as.numeric(Hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
+              list(Hora_n = as.numeric(hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
 
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
 chars_namefile1 <- paste0(landing, "chs1.xdf")
 chars_namefile2 <-  paste0(landing, "chs2.xdf")
-chars_namefile <-  paste0(landing, "characteristics_3.xdf")
+chars_namefile <-  paste0(landing, "characteristics.xdf")
 
 xs <- RxCharacteristics(z = venta, 
                         name = chars_namefile,
@@ -112,11 +111,9 @@ conn <- h2o.init(ip = "localhost",
                  max_mem_size = memo)
 
 
-# Todas las características disponibles
+# Todas las caracter?sticas disponibles
 
 y <- c("m1", "m2", "m3", "sd", "n", "moda", "q1", "q2", "q3", "sesgo", "curtosis", "asim_fisher", "asim_pearson0", "asim_pearson", "asim_bowley", "m1h", "m2h", "m3h", "sdh", "nh", "modah", "q1h", "q2h", "q3h", "sesgoh", "curtosish", "asim_fisherh", "asim_pearson0h", "asim_pearsonh", "asim_bowleyh")
-
-xs <- paste0(landing, 'characteristics_3.xdf') # Archivo de características de insumo para la clusterización
 
 yo <- c("curtosish", "asim_bowleyh", "q2h")    # Caracteristicas a visualizar
 y <- c("asim_pearsonh", "curtosish", "q1h",  "q2h", "q3h", "sesgoh", "modah", "m1h", "asim_bowleyh")
@@ -207,7 +204,7 @@ for (I in 2:7){
 
 # ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÃ“N =====================
 
-# Organización de formatro de archivo de salida
+# Organizaci?n de formatro de archivo de salida
 
 dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 1,
@@ -215,7 +212,7 @@ dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 3,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 4,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 5,
-          Sys.Date()- as.POSIXlt(Sys.Date())$wday + 6)# Primer día de la semana
+          Sys.Date()- as.POSIXlt(Sys.Date())$wday + 6)# Primer d?a de la semana
 fecha_dia = data.frame(dia = 1:7, diafecha = dias)
 
 patrones_all <- merge(x = patrones_all, y = fecha_dia, by = "dia", all.x = TRUE)
@@ -230,7 +227,7 @@ system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.1
 
 
 
-# ================= OTRA ALTERNATIVA DE CONSTRUCCIÓN DE PATRONES =======================
+# ================= OTRA ALTERNATIVA DE CONSTRUCCI?N DE PATRONES =======================
 ## Distribuciones Hora-Unidades
 pattern <- data.frame(patron = 1,
                       Hora = 1,
