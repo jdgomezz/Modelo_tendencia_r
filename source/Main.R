@@ -6,7 +6,7 @@ setwd("~/")
 #setwd("C:/Users/User/Desktop")
 
 wd <- getwd()
-root <- paste0(wd, '/Agotado_en_gondola')
+root <- paste0(wd, '/modelo_tendencia_r')
 inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
@@ -103,7 +103,7 @@ xs <- RxCharacteristics(z = venta,
 # ================ INSTRUCCIONES PARA LA IDENTIFICACIÃ“N DE PATRONES ======================
 nth <- 2      # NÃºmero de procesadores a utilizar
 memo <- '8g' # Memoria RAM a utilizar
-k_n <- 3     # NÃºmero de clusters deseados
+k_n <- 14     # NÃºmero de clusters deseados
 
 conn <- h2o.init(ip = "localhost",
                  port=54321, 
@@ -118,10 +118,12 @@ y <- c("m1", "m2", "m3", "sd", "n", "moda", "q1", "q2", "q3", "sesgo", "curtosis
 yo <- c("curtosish", "asim_bowleyh", "q2h")    # Caracteristicas a visualizar
 y <- c("asim_pearsonh", "curtosish", "q1h",  "q2h", "q3h", "sesgoh", "modah", "m1h", "asim_bowleyh")
 
+xs <- "xdf/characteristics.xdf"
+plot_list <- list()
 for (Master_I in 1:7){
   h2o.removeAll() # Clean slate - just in case the cluster was already running
   model <- cluster_model(xs = xs,
-                         k_n = 10, 
+                         k_n = k_n, 
                          nth = nth, 
                          memo = memo,
                          y = y,
@@ -191,8 +193,42 @@ for (Master_I in 1:7){
                                      varsToKeep2 =c("cluster_id", "x", "y"),
                                      type = "inner",
                                      overwrite = TRUE)
+  
+  # =================== GRAFICACIÓN DE LOS PATRONES ======================================
+    p  <- plot_ly()
+    for (II in 0:(k_n-1)){
+      p <- add_lines(p,
+                     x = c(7, patron[patron$cluster_id == II, 1]),
+                     y = c(0, patron[patron$cluster_id == II, 2]),
+                    mode = 'lines',
+                    type = 'scatter',
+                    name = paste0("Patrón ", II), 
+                    line = list(shape = "spline"))
+    }
+    layout(p, xaxis = list(autotick = FALSE, ticks = "outside", tick0 = 7, dtick = 1, title = "Hora"),
+              yaxis = list(autotick = FALSE, ticks = "outside", tick0 = 0, dtick = 0.01, title = "Perfil" ),
+              title = paste0("Patrones del día ", Master_I))
+
+    plot_list <- rbind(plot_list, p)
 }
 
+p <- subplot(plotly_build(plot_list[[1]]), 
+             plotly_build(plot_list[[2]]),
+             plotly_build(plot_list[[3]]),
+             plotly_build(plot_list[[4]]),
+             nrows = 4, margin = 0.02, heights = rep(.25, 4), shareX = TRUE, shareY = TRUE)
+
+q <- subplot(
+             plotly_build(plot_list[[5]]),
+             plotly_build(plot_list[[6]]),
+             plotly_build(plot_list[[7]]),
+             nrows = 3, margin = 0.02, heights = c(1/3, 1/3, 1/3), shareY = TRUE)
+
+r <- subplot(p, q)
+
+# ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÃ“N =====================
+
+# Consolidación de los patrones en un solo .xdf
 I <- 1
 patrones_all <- rxImport(paste0(output_lib,'patrones_geoprodtime_',I,'.xdf'))
 
@@ -200,9 +236,6 @@ for (I in 2:7){
   aux <- rxImport(paste0(output_lib,'patrones_geoprodtime_',I,'.xdf'))
   patrones_all <- rbind(patrones_all, aux)
 }
-
-
-# ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÃ“N =====================
 
 # Organizaci?n de formatro de archivo de salida
 
@@ -224,7 +257,7 @@ colnames(patrones_all) <- c("DependenciaCD", "Pluid", "Fecha", "Hora", "Perfil")
 write.csv(patrones_all, file = paste0(output_lib, "patterns.csv"))
 system('sshpass -p "hadoop" scp ~/xdf_test/patterns.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/patterns.csv')
 
-
+# ================= Evaluación de los patrones =========================================
 
 
 # ================= OTRA ALTERNATIVA DE CONSTRUCCI?N DE PATRONES =======================
