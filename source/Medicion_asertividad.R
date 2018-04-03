@@ -15,7 +15,7 @@ validacion <- function(patrones, ventas){
   rango_analisis <- 7:hora_actual
   ptrns_hoy <- ptrns[ptrns$Fecha == hoy, ]
 
-  ptrns_vta <- merge(x = ptrns_hoy, y = vtas, by = c(, all.x = TRUE)
+  ptrns_vta <- merge(x = ptrns_hoy, y = vtas, by = c("DependenciaCD", "Pluid", "Hora"), all.x = TRUE)
   
   
   vtas$a.fechacontable <- as.Date(vtas$a.fechacontable)
