@@ -91,11 +91,25 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
     pos[i,2] <- i-1
   }
   
+  # Omitir centros repetidos
   pos<- pos[order(pos[, 1], decreasing = FALSE), ]
+  aux <- pos[duplicated(pos[, 1]),,drop=F]
+  pos <- pos[!duplicated(pos[, 1]),,drop=F]
+  
   patrones <- xs.hex[pos[, 1], ];
-  patrones <- as.matrix(patrones)   # Extracción de patrones de la entidad model
+  patrones <- as.matrix(patrones)   # Extracci?n de patrones de la entidad model
   storage.mode(patrones) <- "numeric"
   patrones <- data.frame(cluster_id = pos[ ,2], Pluid = patrones[, 2], DependenciaCD = patrones[, 1], dia = patrones[, 3])
+  
+  if (nrow(aux) != 0){
+    lista <- list()
+    for (i in 1:nrow(aux)){
+      lista <-rbind(lista, as.matrix(xs.hex[aux[i, 1], ]))
+    }
+    storage.mode(lista) <- "numeric"
+    lista_ <- data.frame(cluster_id = aux[, 2], Pluid = lista[, 2], DependenciaCD =lista[, 1], dia = lista[, 3])
+    patrones <- rbind(patrones, lista_)
+  }
   patrones$concat <- paste0(patrones$Pluid,"-", patrones$DependenciaCD, "-", patrones$dia)
   
   t_end <- Sys.time()
@@ -103,9 +117,9 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
   dt <- abs(t_start - t_end)
   print(dt)
   
-  # ======== GRAFICACIÓN DE LOS CLUSTERS ==================
+  # ======== GRAFICACI?N DE LOS CLUSTERS ==================
   
-  # Localización de los centroides
+  # Localizaci?n de los centroides
   
   if (length(yo) == 2){
     II <- which(names(centros) == yo[1])
@@ -115,7 +129,7 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
     JJ <- which(names(centros) == yo[2]) 
     KK <- which(names(centros) == yo[3]) 
   }
-  # Asignación de grupis con todo el conjunto de datos (entrenamiento, prueba, validación)
+  # Asignaci?n de grupis con todo el conjunto de datos (entrenamiento, prueba, validaci?n)
   
   chars.fit = as.matrix(h2o.predict(object = cluster_model,  newdata = xs.hex));
   
@@ -167,3 +181,18 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
   rm(list= setdiff(ls(), c("cluster_model", "patrones", "p", "llaves", "output")))
   return(output)
 }
+
+# FunciÃ³n para construir la el patron a travÃ©s de la funciÃ³n density.
+
+construir_patrones <- function(datos = auxdata, from = 8, to = 21){
+  den <- density(x = datos, kernel = "gaussian", from = 8, to = 21);
+  den$y <- den$y/sum(den$y)
+  den$x <- floor(den$x)
+  data <- data.table(x = den$x, y = den$y)
+  # Agrupar por horas enteras
+  new <- data.frame(data %>% group_by(x) %>% summarise(y = sum(y)))
+  new$cluster_id <- rep(cluster_id, nrow(new))
+  
+  return(new)
+}
+
