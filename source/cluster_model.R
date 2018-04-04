@@ -185,7 +185,7 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
 # Función para construir la el patron a través de la función density.
 
 construir_patrones <- function(datos = auxdata, from = 8, to = 21){
-  den <- density(x = datos, kernel = "gaussian", from = 8, to = 21);
+  den <- density(x = datos, kernel = "gaussian", from = from, to = 21);
   den$y <- den$y/sum(den$y)
   den$x <- floor(den$x)
   data <- data.table(x = den$x, y = den$y)

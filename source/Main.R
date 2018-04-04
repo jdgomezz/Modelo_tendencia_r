@@ -169,7 +169,7 @@ for (Master_I in 1:7){
     auxdata <- dat[dat$cluster_id == llaves_patrones[i], ]
     cluster_id <- unique(auxdata$cluster_id)
     auxdata <- auxdata[, !(names(auxdata) %in% c("cluster_id", "UnidadesVendidas", "concat", "DependenciaCD", "Pluid", "dia"))]
-    new <- construir_patrones(datos = auxdata, from = 8, to = 21)
+    new <- construir_patrones(datos = auxdata, from = 7, to = 21)
     rm(data, auxdata, den)
     patron <- rbind(patron, new)
   }
@@ -190,14 +190,14 @@ for (Master_I in 1:7){
     p  <- plot_ly()
     for (II in 0:(k_n-1)){
       p <- add_lines(p,
-                     x = c(7, patron[patron$cluster_id == II, 1]),
+                     x = c(6, patron[patron$cluster_id == II, 1]),
                      y = c(0, patron[patron$cluster_id == II, 2]),
                     mode = 'lines',
                     type = 'scatter',
                     line = list(shape = "spline"),
                     colors = colors[II + 1])
     }
-    layout(p, xaxis = list(autotick = FALSE, ticks = "outside", tick0 = 7, dtick = 1, title = "Hora"),
+    layout(p, xaxis = list(autotick = FALSE, ticks = "outside", tick0 = 6, dtick = 1, title = "Hora"),
               yaxis = list(autotick = FALSE, ticks = "outside", tick0 = 0, dtick = 0.01, title = "Perfil" ),
               title = paste0("Patrones del d?a ", Master_I), showlegend = FALSE) 
     
@@ -249,13 +249,21 @@ dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
 fecha_dia = data.frame(dia = 1:7, diafecha = dias)
 
 patrones_all <- merge(x = patrones_all, y = fecha_dia, by = "dia", all.x = TRUE)
-patrones_all <- subset(patrones_all, select = c(3, 2, 7, 5, 6))
-colnames(patrones_all) <- c("DependenciaCD", "Pluid", "Fecha", "Hora", "Perfil")
+patrones_all <- subset(patrones_all, select = c(7, 2, 3, 5, 6))
+colnames(patrones_all) <- c("Fecha", "Pluid", "storeid", "Hora", "Perfil")
 
 # Escritura de archivo final
 
-write.csv(patrones_all, file = paste0(output_lib, "patterns.csv"))
-system('sshpass -p "hadoop" scp ~/xdf/patterns.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/patterns.csv')
+#patrones_all$Fecha <- format(as.Date(format(as.Date(patrones_all$Fecha), "%Y-%m-%d")), "%Y-%m-%d")
+patrones_all$Fecha <- format(patrones_all$Fecha, "%Y-%m-%d")
+
+patrones_all$storeid <- as.numeric(as.character(patrones_all$storeid))
+patrones_all$Pluid <- as.numeric(as.character(patrones_all$Pluid))
+patrones_all$Hora <- as.numeric(as.character(patrones_all$Hora))
+patrones_all$Fecha <- as.Date(patrones_all$Fecha) 
+write.table(patrones_all, file = paste0(output_lib, "tendencia.csv"), sep=",", row.names = FALSE)
+
+system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/Tendencia.csv')
 
 # ================= Evaluaci?n de los patrones =========================================
 
