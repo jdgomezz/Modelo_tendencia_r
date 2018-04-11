@@ -192,20 +192,6 @@ estimated_dist <- function (x, y, bool){
 RxCharacteristics <- function (z, name, name1, name2){
   start_dt  <- Sys.time();
   
-  # x <- rxImport(z) %>% group_by(DependenciaCD, Pluid, dia) %>% summarise(m1 = mean(UnidadesVendidas),
-  #                                                              m2 = moment(UnidadesVendidas, order=2),
-  #                                                              m3 = moment(UnidadesVendidas, order=3),
-  #                                                              sd = sd(UnidadesVendidas),
-  #                                                              suma = sum(UnidadesVendidas),
-  #                                                              n = n(),
-  #                                                              moda = Mode(UnidadesVendidas),
-  #                                                              q1 = quantile(UnidadesVendidas, 0.25),
-  #                                                              q2 = median(UnidadesVendidas),
-  #                                                              q3 = quantile(UnidadesVendidas, 0.75),
-  #                                                              sesgo = skewness(UnidadesVendidas),
-  #                                                              curtosis = kurtosis(UnidadesVendidas)
-  #                                            )
-  
   x <- data.table(rxImport(z))
   
   agrupacion<-c("DependenciaCD", "Pluid", "dia")
@@ -232,20 +218,6 @@ RxCharacteristics <- function (z, name, name1, name2){
                                asim_pearson = 3*(m1 - q2)/sd, 
                                asim_bowley = (q3 + q1 -2*q2)/(q3- q1)),
              overwrite = TRUE)
-  
-  # xh <- rxImport(z) %>% group_by(DependenciaCD, Pluid, dia) %>% summarise(m1h = mean(Hora_n),
-  #                                                                         m2h = moment(Hora_n, order=2),
-  #                                                                         m3h = moment(Hora_n, order=3),
-  #                                                                         sdh = sd(Hora_n),
-  #                                                                         sumah = sum(Hora_n),
-  #                                                                         nh = n(),
-  #                                                                         modah = Mode(Hora_n),
-  #                                                                         q1h = quantile(Hora_n, .25),
-  #                                                                         q2h = median(Hora_n),
-  #                                                                         q3h = quantile(Hora_n, 0.75),
-  #                                                                         sesgoh = skewness(Hora_n),
-  #                                                                         curtosish = kurtosis(Hora_n)
-  # )
   
   xh <- data.table(rxImport(z))
   
@@ -276,6 +248,28 @@ RxCharacteristics <- function (z, name, name1, name2){
   end_dt  <- Sys.time();
   dt <- abs(start_dt - end_dt);
   print(dt)
+  
+  return(xs)
+}
+
+RxCharacteristicsPattern <- function (z, name){
+  start_dt  <- Sys.time();
+  x <- data.table(rxImport(z))
+  
+  agrupacion<-c("DependenciaCD", "Pluid", "dia", "Hora")
+  
+  x <- x[,.(
+    m1 = mean(UnidadesVendidas),
+    sd = sd(UnidadesVendidas),
+    moda = Mode(UnidadesVendidas),
+    q1 = quantile(UnidadesVendidas, 0.25),
+    q2 = median(UnidadesVendidas),
+    q3 = quantile(UnidadesVendidas, 0.75)
+  ),by=agrupacion]
+  
+  xs <- rxDataStep(inData = x, 
+                  outFile = name,
+                  overwrite = TRUE)
   
   return(xs)
 }

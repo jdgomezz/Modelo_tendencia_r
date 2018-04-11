@@ -13,6 +13,7 @@ landing <- "xdf/"
 model_lib <- "xdf/"
 output_lib <- "xdf/"
 
+libs <- list(inSource, landing, model_lib, output_lib)
 # ================== DECLARACIÓN DE LIBRERIAS EXTERNAS Y PROPIAS ===================
 
 source(paste0(root, '/source/Load_libs.R'))
@@ -26,7 +27,7 @@ system(paste0("rm -r ", inSource, "*.xdf"))
 system(paste0("rm -r ", landing, "*.xdf"))
 system(paste0("rm -r ", model_lib, "*.xdf"))
 system(paste0("rm -r ", output_lib, "*.xdf"))
-                            
+
 # ================ INSTRUCCIONES DE CARGA DE DATOS ========================================
 
 # Cargar datos de venta utilizanzo función de R Open a partir de una consulta en Teradata e imprimir
@@ -39,10 +40,12 @@ cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
 cut_tiempo_vida <- 30                         # Tiempo de vida m??nimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
 cut_proporcion <- 1                          # Proporción de venta m??nima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
-
 booleano <- TRUE
 file <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza_v2.txt'
-outfile_ventas <- paste0(inSource, 'ventas.xdf')
+pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, booleano, file)
+
+
+outfile_ventas <- paste0(inSource, 'ventas', tienda, '.xdf')
 
 #querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
 querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
@@ -75,30 +78,30 @@ system.time(
     print(paste0('Finalizado iteracion ',i))
     rm(deptemp, pars)
   })
-   stopCluster(cl)
-   rm(cl)
+stopCluster(cl)
+rm(cl)
 
-   i <- 0
-   venta <- rxImport(inData = paste0(inSource,'ventas_',i,'.xdf'), 
-            outFile = outfile_ventas, overwrite = TRUE)
-   acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
-   #file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
-   
-   for (i in 1:(npart-1)){
-       venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
-                         outFile= outfile_ventas,
-                         append = "rows", 
-                         overwrite = TRUE)
-      acum = acum + nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
-      print(i)
-     # file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
-   }
-   
+i <- 0
+venta <- rxImport(inData = paste0(inSource,'ventas_',i,'.xdf'), 
+                  outFile = outfile_ventas, overwrite = TRUE)
+acum =  nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
+#file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
+
+for (i in 1:(npart-1)){
+  venta <- rxImport(inData = paste0(inSource, 'ventas_',i,'.xdf'), 
+                    outFile= outfile_ventas,
+                    append = "rows", 
+                    overwrite = TRUE)
+  acum = acum + nrow(rxImport(paste0(inSource, 'ventas_',i,'.xdf')))
+  print(i)
+  # file.remove(paste0(inSource, 'ventas_',i,'.xdf'))
+}
+
 rxDataStep(inData = venta, 
-              outFile = venta,
-              overwrite = TRUE,
-              transforms = 
-              list(Hora_n = as.numeric(hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
+           outFile = venta,
+           overwrite = TRUE,
+           transforms = 
+             list(Hora_n = as.numeric(hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
 
 # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
 chars_namefile1 <- paste0(landing, "chs1.xdf")
@@ -147,11 +150,11 @@ for (DEPS in 1:length(dep)){
     patterns <- rxImport(inData = model[[2]], outFile = paste0(model_lib, "patrones.xdf"), overwrite = TRUE)
     
     venta_f <- rxMerge(inData1 = outfile_ventas,
-                  inData2 = patterns,
-                  outFile = paste0(model_lib, "venta_f.xdf"),
-                  matchVars = c("concat"), 
-                  type = "inner",
-                  overwrite = TRUE)
+                       inData2 = patterns,
+                       outFile = paste0(model_lib, "venta_f.xdf"),
+                       matchVars = c("concat"), 
+                       type = "inner",
+                       overwrite = TRUE)
     
     data <- rxImport(venta_f)
     
@@ -192,21 +195,21 @@ for (DEPS in 1:length(dep)){
                                        type = "inner",
                                        overwrite = TRUE)
     # =================== GRAFICACI?N DE LOS PATRONES ======================================
-      p  <- plot_ly()
-      for (II in 0:(k_n-1)){
-        p <- add_lines(p,
-                       x = c(6, patron[patron$cluster_id == II, 1]),
-                       y = c(0, patron[patron$cluster_id == II, 2]),
-                      mode = 'lines',
-                      type = 'scatter',
-                      line = list(shape = "spline"),
-                      colors = colors[II + 1])
-      }
-      layout(p, xaxis = list(autotick = FALSE, ticks = "outside", tick0 = 6, dtick = 1, title = "Hora"),
-                yaxis = list(autotick = FALSE, ticks = "outside", tick0 = 0, dtick = 0.01, title = "Perfil" ),
-                title = paste0("Patrones del d?a ", Master_I), showlegend = FALSE) 
-      
-      plot_list <- rbind(plot_list, p)
+    p  <- plot_ly()
+    for (II in 0:(k_n-1)){
+      p <- add_lines(p,
+                     x = c(6, patron[patron$cluster_id == II, 1]),
+                     y = c(0, patron[patron$cluster_id == II, 2]),
+                     mode = 'lines',
+                     type = 'scatter',
+                     line = list(shape = "spline"),
+                     colors = colors[II + 1])
+    }
+    layout(p, xaxis = list(autotick = FALSE, ticks = "outside", tick0 = 6, dtick = 1, title = "Hora"),
+           yaxis = list(autotick = FALSE, ticks = "outside", tick0 = 0, dtick = 0.01, title = "Perfil" ),
+           title = paste0("Patrones del d?a ", Master_I), showlegend = FALSE) 
+    
+    plot_list <- rbind(plot_list, p)
   }
   
   # Consolidaci?n de los patrones en un solo .xdf
@@ -222,7 +225,7 @@ for (DEPS in 1:length(dep)){
   clusters_geoprod <- data.frame(clusters_geoprod %>% group_by(dia, y) %>% summarise(n_elems = n()))
   
   o <- plot_ly(clusters_geoprod, y = ~dia, x = ~y, color = ~y, size = ~n_elems, type = "scatter", colors = colors, 
-          marker = list(symbol = 'circle', sizemode = 'diameter'), sizes = c(5, 80)) %>% hide_colorbar()
+               marker = list(symbol = 'circle', sizemode = 'diameter'), sizes = c(5, 80)) %>% hide_colorbar()
   
   p <- subplot(plotly_build(plot_list[[1]]), 
                plotly_build(plot_list[[2]]),
@@ -231,10 +234,10 @@ for (DEPS in 1:length(dep)){
                nrows = 4, margin = 0.02, heights = rep(.25, 4), shareX = TRUE, shareY = TRUE)
   
   q <- subplot(
-               plotly_build(plot_list[[5]]),
-               plotly_build(plot_list[[6]]),
-               plotly_build(plot_list[[7]]),
-               nrows = 3, margin = 0.02, heights = c(1/3, 1/3, 1/3), shareY = TRUE)
+    plotly_build(plot_list[[5]]),
+    plotly_build(plot_list[[6]]),
+    plotly_build(plot_list[[7]]),
+    nrows = 3, margin = 0.02, heights = c(1/3, 1/3, 1/3), shareY = TRUE)
   
   r <- subplot(o, p, q)
   rxImport(inData = patrones_all, outFile = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), overwrite = TRUE)
@@ -244,7 +247,7 @@ for (DEPS in 1:length(dep)){
 DEPS <- 1
 outfile_patrones <- paste0(output_lib, "patrones_all_deps.xdf")
 agotado <- rxImport(inData = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), 
-                  outFile = outfile_patrones, overwrite = TRUE)
+                    outFile = outfile_patrones, overwrite = TRUE)
 
 DEPS <- 1
 patrones_all <- rxImport(paste0(output_lib, "patrones_all_", DEPS , ".xdf"))
@@ -257,9 +260,9 @@ for (DEPS in 2:15){
 
 for (DEPS in 2:15){
   agotado <- rxImport(inData = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), 
-                    outFile= outfile_patrones,
-                    append = "rows", 
-                    overwrite = TRUE)
+                      outFile= outfile_patrones,
+                      append = "rows", 
+                      overwrite = TRUE)
   print(DEPS)
 }
 
