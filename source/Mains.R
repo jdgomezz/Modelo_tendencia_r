@@ -1,4 +1,4 @@
-function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
+MainByDep <- function (tienda, query, libs, pars, nth, k_n, memo, y, yo){
   inSource <- libs[[1]]
   landing <- libs[[2]]
   model_lib <- libs[[3]]
@@ -12,16 +12,18 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
   cut_proporcion <- pars[[6]] 
   n_deciles <- pars[[7]] 
   booleano <- pars[[8]] 
-  pars[[9]] <- file
+  file <- pars[[9]]
   
   pars <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
-  venta <- LoadXdf(file, paste0(file = inSource, filename ='ventas_',tienda,'.xdf'), booleano = booleano, pars = pars)
+  
+  outfile_ventas <- paste0(inSource, 'ventas_', tienda, '.xdf')
+  venta <- LoadXdf(query, outfile_ventas, booleano = booleano, pars = pars)
 
   rxDataStep(inData = venta, 
              outFile = venta,
              overwrite = TRUE,
-             transforms = 
-               list(Hora_n = as.numeric(hora), concat = paste0(Pluid, "-", DependenciaCD, "-", dia)) )
+             transforms = list(Hora_n = as.numeric(hora), 
+                               concat = paste0(Pluid, "-", DependenciaCD, "-", dia)))
   
   # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
   chars_namefile1 <- paste0(landing, "chs1_", tienda, ".xdf")
@@ -50,7 +52,7 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
                              memo = memo,
                              y = y,
                              yo = yo,
-                             dep = dep[DEPS],
+                             dep = tienda,
                              dia = Master_I,
                              estimate_k = FALSE)
       
@@ -60,7 +62,7 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
       
       venta_f <- rxMerge(inData1 = outfile_ventas,
                          inData2 = patterns,
-                         outFile = paste0(model_lib, "venta_f.xdf"),
+                         outFile = paste0(model_lib, "venta_", tienda, "f.xdf"),
                          matchVars = c("concat"), 
                          type = "inner",
                          overwrite = TRUE)
@@ -92,12 +94,12 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
       }
       patron <- patron[-1, ]
       
-      patron.xdf <- rxImport(inData = patron, outFile = paste0(output_lib, "patrones.xdf"), overwrite = TRUE)
-      llaves.xdf <- rxImport(inData = model[[4]], outFile = paste0(output_lib, "geoprodtime.xdf"), overwrite = TRUE)
+      patron.xdf <- rxImport(inData = patron, outFile = paste0(output_lib, "patrones_", tienda, ".xdf"), overwrite = TRUE)
+      llaves.xdf <- rxImport(inData = model[[4]], outFile = paste0(output_lib, "geoprodtime_", tienda, ".xdf"), overwrite = TRUE)
       
       patrones_expandidos.xdf <- rxMerge(inData1 = llaves.xdf,
                                          inData2 = patron.xdf,
-                                         outFile = paste0(output_lib, "patrones_geoprodtime_", Master_I,".xdf"),
+                                         outFile = paste0(output_lib, "patrones_geoprodtime_", Master_I, "_", tienda, ".xdf"),
                                          matchVars = c("cluster_id"),
                                          varsToKeep1 =c("Pluid", "DependenciaCD", "dia", "cluster_id"),
                                          varsToKeep2 =c("cluster_id", "x", "y"),
@@ -124,10 +126,10 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
     
     # Consolidaci?n de los patrones en un solo .xdf
     I <- 1
-    patrones_all <- rxImport(paste0(output_lib,'patrones_geoprodtime_',I,'.xdf'), overwrite = TRUE)
+    patrones_all <- rxImport(paste0(output_lib,'patrones_geoprodtime_', Master_I, '_', tienda, '.xdf'), overwrite = TRUE)
     
     for (I in 2:7){
-      aux <- rxImport(paste0(output_lib,'patrones_geoprodtime_',I,'.xdf'), overwrite = TRUE)
+      aux <- rxImport(paste0(output_lib,'patrones_geoprodtime_', Master_I, '_', tienda, '.xdf'), overwrite = TRUE)
       patrones_all <- rbind(patrones_all, aux)
     }
     
@@ -150,5 +152,6 @@ function MainByDep(tienda, libs, pars, nth, k_n, memo, y, yo){
       nrows = 3, margin = 0.02, heights = c(1/3, 1/3, 1/3), shareY = TRUE)
     
     r <- subplot(o, p, q)
-    rxImport(inData = patrones_all, outFile = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), overwrite = TRUE)
+    patron <- rxImport(inData = patrones_all, outFile = paste0(output_lib, "patrones_all_", tienda , ".xdf"), overwrite = TRUE)
+    return(patron)
 }
