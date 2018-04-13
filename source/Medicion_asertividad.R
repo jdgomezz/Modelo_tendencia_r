@@ -58,7 +58,7 @@ inventario <- inventario_file
   # Lógica de agotado en góndola
   
   llaves <- unique(ptrns_inv_vta$concat)
-  for (j in 1:nrow(llaves)){
+  for (j in 1:length(llaves)){
     llave <- llaves[j]
     pos <- which(ptrns_inv_vta$concat == llave)
     ini <- head(pos, n=1)

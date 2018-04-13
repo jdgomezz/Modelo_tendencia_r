@@ -4,6 +4,8 @@ Load_libs <- function(root){
   source(paste0(root,'/source/Data_transformation.R'))
   source(paste0(root,'/source/Load_data.R'))
   source(paste0(root,'/source/cluster_model.R'))
+  source(paste0(root,'/source/Mains.R'))
+  
   list.of.packages <- c("reshape2",
                         "dplyr", 
                         "moments",

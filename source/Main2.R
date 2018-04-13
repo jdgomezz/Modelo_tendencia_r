@@ -42,7 +42,7 @@ cut_proporcion <- 1                          # Proporción de venta m??nima (Nro
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
 booleano <- TRUE
 query <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza_v2.txt'
-pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, booleano, file)
+pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, booleano)
 querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
 #querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
 connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
@@ -58,17 +58,20 @@ nodes <- 8
 #     })
 #stopCluster(cl)
 #rm(cl)
-tiendas <- c(35, 33, 31)
+tiendas <- c(35, 31, 33)
 nth <- 8
 k_n <- 50
 memo <- '16g'
 nodes <- 3
+
+h2o.removeAll() # Clean slate - just in case the cluster was already running
+
 yo <- c("sesgoh", "asim_bowleyh", "q2h")    # Caracteristicas a visualizar
 y <- c("asim_pearsonh", "curtosish", "q1h",  "q2h", "q3h", "sesgoh", "modah", "m1h", "asim_bowleyh")
 cl <-makeCluster(nodes)
 registerDoParallel(cl)
 system.time( 
-  result <- foreach (i = 1:length(tiendas), .combine='cbind', .export = c('LoadXdf', "RxCharacteristics", "cluster_model", "data.table")) %dopar% {
+  result <- foreach (i = 1:length(tiendas), .combine='cbind', .export = c('LoadXdf', "RxCharacteristics", "cluster_model", "Mode"), .packages = c("moments", "data.table", "h2o", "plotly")) %dopar% {
             patrones_dep <- MainByDep(tiendas[i], query, libs, pars, nth, k_n, memo, y, yo)
   }
 )
