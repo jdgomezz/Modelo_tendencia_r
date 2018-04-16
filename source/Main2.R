@@ -12,21 +12,15 @@ inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
 output_lib <- "xdf/"
+log_lib <- "xdf/"
 
-libs <- list(inSource, landing, model_lib, output_lib)
+libs <- list(inSource, landing, model_lib, output_lib, log_lib)
 # ================== DECLARACIÓN DE LIBRERIAS EXTERNAS Y PROPIAS ===================
 
 source(paste0(root, '/source/Load_libs.R'))
 Load_libs(root)
 
 RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máquina a paralelo
-
-# ======================== LIMPIEZA DE TODOS LOS DIRECTORIOS ==============================
-
-system(paste0("rm -r ", inSource, "*.xdf"))
-system(paste0("rm -r ", landing, "*.xdf"))
-system(paste0("rm -r ", model_lib, "*.xdf"))
-system(paste0("rm -r ", output_lib, "*.xdf"))
 
 # ================ INSTRUCCIONES DE CARGA DE DATOS ========================================
 
@@ -52,17 +46,11 @@ npart <- 40
 delta <- length(dep)%/%npart
 nodes <- 8
 
-#registerDoParallel(cl)
-#system.time( 
-#  result <- foreach (i = 0:npart, .combine='cbind', .export = c('LoadXdf')) %dopar% {
-#     })
-#stopCluster(cl)
-#rm(cl)
-tiendas <- c(35, 31, 33)
+tiendas <- c(41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)
 nth <- 8
 k_n <- 50
 memo <- '16g'
-nodes <- 3
+nodes <- 8
 
 h2o.removeAll() # Clean slate - just in case the cluster was already running
 
@@ -72,35 +60,26 @@ cl <-makeCluster(nodes)
 registerDoParallel(cl)
 system.time( 
   result <- foreach (i = 1:length(tiendas), .combine='cbind', .export = c('LoadXdf', "RxCharacteristics", "cluster_model", "Mode"), .packages = c("moments", "data.table", "h2o", "plotly")) %dopar% {
-            patrones_dep <- MainByDep(tiendas[i], query, libs, pars, nth, k_n, memo, y, yo)
+                  patrones_dep <- MainByDep(tiendas[i], (i-1),  query, libs, pars, nth, k_n, memo, y, yo, fileConn, TRUE)
   }
 )
 stopCluster(cl)
 rm(cl)  
 # ==================== CONSOLIDACIÓN DEL ARCHIVO DE SALIDA ============================
-DEPS <- 1
 outfile_patrones <- paste0(output_lib, "patrones_all_deps.xdf")
-agotado <- rxImport(inData = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), 
-                    outFile = outfile_patrones, overwrite = TRUE)
 
 DEPS <- 1
-patrones_all <- rxImport(paste0(output_lib, "patrones_all_", DEPS , ".xdf"))
+outfile<- rxImport(paste0(output_lib, "patrones_all_", tiendas[DEPS] , ".xdf"))
 
-for (DEPS in 2:15){
-  agotado <- rxImport(paste0(output_lib, "patrones_all_", DEPS , ".xdf"))
-  patrones_all <- rbind(patrones_all, agotado)                  
+for (DEPS in 2:length(tiendas)){
+  aux <- rxImport(paste0(output_lib, "patrones_all_",  tiendas[DEPS] , ".xdf"))
+  outfile <- rbind(outfile, aux)
   print(DEPS)
 }
 
-for (DEPS in 2:15){
-  agotado <- rxImport(inData = paste0(output_lib, "patrones_all_", DEPS , ".xdf"), 
-                      outFile= outfile_patrones,
-                      append = "rows", 
-                      overwrite = TRUE)
-  print(DEPS)
-}
-
-patrones_all <- rxImport(outfile_patrones, overwrite = TRUE)
+patrones_all <- rxImport(inData = outfile,
+                        outFile = outfile_patrones,
+                        overwrite = TRUE)
 # ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÓN =====================
 
 # Organizaci?n de formatro de archivo de salida
@@ -114,20 +93,18 @@ dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 6)# Primer d?a de la semana
 fecha_dia = data.frame(dia = 1:7, diafecha = dias)
 
-patrones_all <- merge(x = patrones_all, y = fecha_dia, by = "dia", all.x = TRUE)
-patrones_all <- subset(patrones_all, select = c(7, 2, 3, 5, 6))
-colnames(patrones_all) <- c("Fecha", "Pluid", "storeid", "Hora", "Perfil")
+outfile <- merge(x = outfile, y = fecha_dia, by = "dia", all.x = TRUE)
+outfile <- subset(outfile, select = c(7, 2, 3, 5, 6))
+colnames(outfile) <- c("Fecha", "Pluid", "storeid", "Hora", "Perfil")
 
 # Escritura de archivo final
 
-#patrones_all$Fecha <- format(as.Date(format(as.Date(patrones_all$Fecha), "%Y-%m-%d")), "%Y-%m-%d")
-patrones_all$Fecha <- format(patrones_all$Fecha, "%Y-%m-%d")
-
-patrones_all$storeid <- as.numeric(as.character(patrones_all$storeid))
-patrones_all$Pluid <- as.numeric(as.character(patrones_all$Pluid))
-patrones_all$Hora <- as.numeric(as.character(patrones_all$Hora))
-patrones_all$Fecha <- as.Date(patrones_all$Fecha) 
-write.table(patrones_all, file = paste0(output_lib, "tendencia.csv"), sep=",", row.names = FALSE)
+outfile$Fecha <- format(outfile$Fecha, "%Y-%m-%d")
+outfile$storeid <- as.numeric(as.character(outfile$storeid))
+outfile$Pluid <- as.numeric(as.character(outfile$Pluid))
+outfile$Hora <- as.numeric(as.character(outfile$Hora))
+outfile$Fecha <- as.Date(outfile$Fecha) 
+write.table(outfile, file = paste0(output_lib, "tendencia.csv"), sep=",", row.names = FALSE)
 
 system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/tendencia.csv')
 
@@ -136,8 +113,9 @@ system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/
 
 # ================ ENVIAR E-MAIL DE FINALIZACIÓN DE PROCESO =============================
 
+
 send.mail(from = "jgomezz101@gmail.com",                                                     # Desde
-          to = "afbedoyag@grupo-exito.com",                                                  # Para
+          to = "jdgomezz@grupo-exito.com",                                                  # Para
           subject = "Reporte eficiencia modelo de tendencia",                                # Asunto
           body = "Buena tarde",                                                              # Cuerpo
           # html = T,  # recibe HTML encoding para el cuerpo
@@ -147,7 +125,8 @@ send.mail(from = "jgomezz101@gmail.com",                                        
           smtp = list(host.name = "smtp.gmail.com",                                          # Host del mail
                       port = 465,                                                            # Puerto del host
                       user.name = "jgomezz101@gmail.com",                                    # Usuario que envia
-                      passwd = "n1nt3nd0!"),                                                 # Contrase?a del que envia
+                      passwd = "N1nt3nd0\""),                                                 # Contrase?a del que envia
+          ssl = TRUE,
           authenticate = FALSE,                                                              # Autenticar
           send = TRUE,
           debug=TRUE)

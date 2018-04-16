@@ -1,5 +1,5 @@
 
-cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
+cluster_model <- function(xs, k_n, estimate_k, dep, dia, y, yo){
   t_start <- Sys.time()
   
   xs.dat <- rxImport(xs);          # Conversión a formato de datos de h2o
@@ -184,7 +184,7 @@ cluster_model <- function(xs, k_n, estimate_k, nth, memo, dep, dia, y, yo){
 
 # Función para construir la el patron a través de la función density.
 
-construir_patrones <- function(datos = auxdata, from = 8, to = 21){
+construir_patrones <- function(datos = auxdata, from = 8, to = 21, cluster_id){
   den <- density(x = datos, kernel = "gaussian", from = from, to = 21);
   den$y <- den$y/sum(den$y)
   den$x <- floor(den$x)
