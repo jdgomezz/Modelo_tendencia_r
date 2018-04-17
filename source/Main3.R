@@ -1,13 +1,13 @@
 rm(list = ls())
 
 # Onlinux
-# setwd("~/")
+ setwd("~/")
 
 # On Windows
-setwd("C:/Users/User/Desktop")
+# setwd("C:/Users/User/Desktop")
 
 wd <- getwd()
-root <- paste0(wd, '/modelo_tendencia_r')
+root <- paste0(wd, '/Agotado_en_gondola')
 inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
@@ -42,16 +42,10 @@ querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and D
 connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
 odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
 dep <- rxImport(odbcDS)$DependenciaCD
-npart <- 40
-delta <- length(dep)%/%npart
-nodes <- 8
 
 tiendas <- c(41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)
-tiendas <- c(31, 35)
-nth <- 2
-k_n <- 50
-memo <- '16g'
-nodes <- 2
+
+nodes <- 8
 
 cl <-makeCluster(nodes)
 registerDoParallel(cl)
@@ -110,19 +104,75 @@ outfile <- subset(outfile, select = c(11, 3, 2, 4, 7))
 colnames(outfile) <- c("Fecha", "Pluid", "storeid", "Hora", "Perfil")
 
 outfile[is.na(outfile[, 5]), 5] <- 0
-# Escritura de archivo final
+outfile <- outfile[order(outfile$Fecha, outfile$storeid, outfile$Pluid, outfile$Hora), ]# Escritura de archivo final
 
 outfile$Fecha <- format(outfile$Fecha, "%Y-%m-%d")
 outfile$storeid <- as.numeric(as.character(outfile$storeid))
 outfile$Pluid <- as.numeric(as.character(outfile$Pluid))
 outfile$Hora <- as.numeric(as.character(outfile$Hora))
 outfile$Fecha <- as.Date(outfile$Fecha) 
-write.table(outfile, file = paste0(output_lib, "tendencia.csv"), sep=",", row.names = FALSE)
+write.table(outfile, file = paste0(output_lib, "tendencia_.csv"), sep=",", row.names = FALSE)
 
-system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/tendencia.csv')
+system('sshpass -p "hadoop" scp ~/xdf/tendencia_.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/tendencia_.csv')
 
 # ================= Evaluaci?n de los patrones =========================================
+# Extracción de venta histórica
 
+query <- "SELECT DependenciaCD as storeid, Pluid, Fecha, Hora, UnidadesVendidas  FROM bd_ddpo.vwventashora where (DependenciaCD in (&dep.)) and (Fecha between &fi and &ff) and UnidadesVendidas > 0 "
+query <- gsub("&dep.", "41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569", query);
+query <- gsub("&fi", "'2018-04-08'" , query);                 # Fecha inicial
+query <- gsub("&ff", "'2018-04-14'" , query);                 # Fecha final
+
+connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
+odbcDS <-RxOdbcData(sqlQuery = query,connectionString = connectionString)
+validation_data <- rxImport(odbcDS)
+validation_data$Hora <- as.numeric(validation_data$Hora)
+validation_data$Fecha <- weekdays(as.Date(validation_data$Fecha))
+
+validation_data_ <- validation_data
+validation_data_$Hora <- validation_data_$Hora + 1
+
+# Modelo de tendencia
+tendencia <- read.csv("xdf/tendencia.csv", header = TRUE)
+tendencia$Fecha <- weekdays(as.Date(tendencia$Fecha))
+
+tendencia2 <- tendencia
+tendencia2$Hora <-tendencia2$Hora + 1
+# Modelo de características
+modelo <- read.csv("xdf/tendencia_.csv", header = TRUE)
+modelo$Fecha <- weekdays(as.Date(modelo$Fecha))
+
+outfile_a <- merge(x = tendencia,
+                   y = tendencia2, 
+                   by = c("Fecha", "Pluid", "storeid", "Hora"),
+                   all.x = TRUE)
+
+outfile_b <- merge(x = outfile_a,
+                 y = modelo, 
+                 by = c("Fecha", "Pluid", "storeid", "Hora"),
+                 all.x = TRUE)
+
+outfile_c <- merge(x = outfile_b,
+                 y = validation_data, 
+                 by = c("Fecha", "Pluid", "storeid", "Hora"),
+                 all.x = TRUE)
+
+outfile_d <- merge(x = outfile_c,
+                   y = validation_data_, 
+                   by = c("Fecha", "Pluid", "storeid", "Hora"),
+                   all.x = TRUE)
+
+outfile_d[is.na(outfile_d$Perfil.y), 6] <- 0
+outfile_d[is.na(outfile_d$UnidadesVendidas.x), 8] <- 0
+outfile_d[is.na(outfile_d$UnidadesVendidas.y), 9] <- 0
+
+outfile_d$Proy <- outfile_d$UnidadesVendidas.y*ifelse(outfile_d$Perfil.y == 0, 0, (outfile_d$Perfil.x/outfile_d$Perfil.y))
+outfile_d$abse <- abs(outfile_d$Proy - outfile_d$UnidadesVendidas.x)
+
+
+outfile_ <- outfile[order(outfile$Fecha, outfile$Pluid, outfile$storeid, outfile$Hora), ]
+
+aux[is.na(aux$UnidadesVendidas), 5] <- 0
 # ================ ENVIAR E-MAIL DE FINALIZACIÓN DE PROCESO =============================
 
 

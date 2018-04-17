@@ -1,13 +1,13 @@
 rm(list = ls())
 
 # Onlinux
-# setwd("~/")
+ setwd("~/")
 
 # On Windows
-setwd("C:/Users/User/Desktop")
+#setwd("C:/Users/User/Desktop")
 
 wd <- getwd()
-root <- paste0(wd, '/modelo_tendencia_r')
+root <- paste0(wd, '/Agotado_en_gondola')
 inSource <- "xdf/"
 landing <- "xdf/"
 model_lib <- "xdf/"
@@ -47,8 +47,8 @@ delta <- length(dep)%/%npart
 nodes <- 8
 
 tiendas <- c(41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)
-tiendas <- c(31, 35)
-nth <- 2
+tiendas <- c(35)
+nth <- 1
 k_n <- 50
 memo <- '16g'
 nodes <- 2
