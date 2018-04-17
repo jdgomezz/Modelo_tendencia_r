@@ -38,15 +38,15 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
   chars_namefile2 <-  paste0(landing, "chs2_", tienda,".xdf")
   chars_namefile <-  paste0(landing, "characteristics_", tienda, ".xdf")
   
-  write(paste0("Inicia computación de características de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
+  write(paste0("Inicia computación de caracter�?sticas de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
 
   xs <- RxCharacteristics(z = outfile_ventas, 
                           name = chars_namefile,
                           name1 = chars_namefile1,
                           name2 = chars_namefile2)
   
-  # Log para confirmar computación de características 
-  write(paste0("Termina de computar características de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
+  # Log para confirmar computación de caracter�?sticas 
+  write(paste0("Termina de computar caracter�?sticas de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
   
   # ================ INSTRUCCIONES PARA LA IDENTIFICACIÓN DE PATRONES ======================
   xs <- paste0("xdf/characteristics_", tienda, ".xdf")
@@ -54,7 +54,7 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
 
   for (Master_I in 1:7){
      
-     write(paste0("Inicia computar modelo de tienda ", tienda, " para el día ", Master_I), file = fileConn, sep = "\n", append = TRUE)
+     write(paste0("Inicia computar modelo de tienda ", tienda, " para el d�?a ", Master_I), file = fileConn, sep = "\n", append = TRUE)
      port <- 54321 + 3*Index
      conn <- h2o.init(ip = "localhost",
                       port  =port, 
@@ -69,8 +69,8 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
                              dia = Master_I,
                              estimate_k = FALSE)
       
-      # Log para confirmar computación de modelo de clasificación para el día
-      write(paste0("Termina de computar modelo de tienda ", tienda, " para el día ", Master_I), file = fileConn, sep = "\n", append = TRUE)
+      # Log para confirmar computación de modelo de clasificación para el d�?a
+      write(paste0("Termina de computar modelo de tienda ", tienda, " para el d�?a ", Master_I), file = fileConn, sep = "\n", append = TRUE)
 
      # ===== CONSTRUCCIÓN DE PATRONES A TRAVÉS DE LA ESTIMACIÓN DE FUNCIONES DE DENSIDAD CON KERNEL GAUSSIANO ===================================
       
@@ -111,7 +111,7 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
       
       # Log para confirmar el cómputo de los patrones para la tienda.
 
-      write(paste0("Termina de computar patrones de tienda ", tienda, " para el día ", Master_I), file = fileConn, sep = "\n", append = TRUE)
+      write(paste0("Termina de computar patrones de tienda ", tienda, " para el d�?a ", Master_I), file = fileConn, sep = "\n", append = TRUE)
       
       patron <- patron[-1, ]
       
@@ -129,7 +129,7 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
       
       # Log para confirmar el cómputo de los patrones expandidos a los plus para la tienda.
       
-      write(paste0("Termina de computar patrones expandidos de tienda ", tienda, " para el día ", Master_I), file = fileConn, sep = "\n", append = TRUE)
+      write(paste0("Termina de computar patrones expandidos de tienda ", tienda, " para el d�?a ", Master_I), file = fileConn, sep = "\n", append = TRUE)
     }
     # Consolidaci?n de los patrones en un solo .xdf
     I <- 1
@@ -145,10 +145,60 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
     
     patron <- rxImport(inData = patrones_all, outFile = paste0(output_lib, "patrones_all_", tienda , ".xdf"), overwrite = TRUE)
     
-    # Log para confirmar el cómputo de los patrones para todos los días de la tienda.
+    # Log para confirmar el cómputo de los patrones para todos los d�?as de la tienda.
     
     write(paste0("Termina de escribir patrones definitivos de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
     close(fileConn)
     
     return(patron)
+}
+
+
+CharsByDep <- function (tienda, query, libs, pars, fileConn, loadbool){
+  inSource <- libs[[1]]
+  landing <- libs[[2]]
+  model_lib <- libs[[3]]
+  output_lib <- libs[[4]]
+  log_lib <- libs[[5]]
+  
+  fi <- pars[[1]]  
+  ff <- pars[[2]]
+  cut_registros <- pars[[3]]
+  cut_ultima_venta <-pars[[4]] 
+  cut_tiempo_vida <- pars[[5]] 
+  cut_proporcion <- pars[[6]] 
+  n_deciles <- pars[[7]] 
+  booleano <- pars[[8]] 
+  
+  parametros <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+  
+  fileConn<-file(paste0(log_lib, "logs_", tienda, ".txt"), "w")
+  
+  # Log para confirmar descarga de histórico de ventas hora
+  write(paste0("Inicia descarga de históricos de venta de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
+  
+  outfile_ventas <- paste0(inSource, 'ventas_', tienda, '.xdf')
+  if (loadbool == TRUE){
+    venta <- LoadXdf(query, outfile_ventas, booleano = booleano, pars = parametros)
+    rxDataStep(inData = venta, 
+               outFile = venta,
+               overwrite = TRUE,
+               transforms = list(Hora_n = as.numeric(hora), 
+                                 concat = paste0(Pluid, "-", DependenciaCD, "-", dia)))
+  }
+  # Log para confirmar descarga de histórico de ventas hora
+  write(paste0("Termina de descargar históricos de venta de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
+  
+  # ================ INSTRUCCIONES DE CONSTRUCCION DE CARACTERISTICAS ======================
+  chars_namefile <-  paste0(landing, "CentralChars_", tienda, ".xdf")
+  
+  write(paste0("Inicia computación de caracter�sticas de tendencia central para ", tienda), file = fileConn, sep = "\n", append = TRUE)
+  
+  xs <- RxCharacteristicsPattern(z = outfile_ventas,  name = chars_namefile)
+  # Log para confirmar computación de caracter�?sticas 
+  write(paste0("Termina computación de caracter�sticas de tendencia central para ", tienda), file = fileConn, sep = "\n", append = TRUE)
+
+  close(fileConn)
+  
+  return(xs)
 }

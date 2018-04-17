@@ -53,34 +53,45 @@ k_n <- 50
 memo <- '16g'
 nodes <- 2
 
-h2o.removeAll() # Clean slate - just in case the cluster was already running
-
-yo <- c("sesgoh", "asim_bowleyh", "q2h")    # Caracteristicas a visualizar
-y <- c("asim_pearsonh", "curtosish", "q1h",  "q2h", "q3h", "sesgoh", "modah", "m1h", "asim_bowleyh")
 cl <-makeCluster(nodes)
 registerDoParallel(cl)
 system.time( 
   result <- foreach (i = 1:length(tiendas), .combine='cbind', .export = c('LoadXdf', "RxCharacteristics", "cluster_model", "Mode"), .packages = c("moments", "data.table", "h2o", "plotly")) %dopar% {
-                  patrones_dep <- MainByDep(tiendas[i], (i-1),  query, libs, pars, nth, k_n, memo, y, yo, fileConn, FALSE)
+    centralChars <-  CharsByDep(tiendas[i], query, libs, pars, fileConn, FALSE)
   }
 )
 stopCluster(cl)
 rm(cl)  
+
 # ==================== CONSOLIDACIÓN DEL ARCHIVO DE SALIDA ============================
-outfile_patrones <- paste0(output_lib, "patrones_all_deps.xdf")
+outfile_patrones <- paste0(output_lib, "CentralChars_all_deps.xdf")
 
 DEPS <- 1
-outfile<- rxImport(paste0(output_lib, "patrones_all_", tiendas[DEPS] , ".xdf"))
+outfile<- rxImport(paste0(output_lib, "CentralChars_", tiendas[DEPS] , ".xdf"))
+outfile <- outfile[order(outfile$Pluid, outfile$dia, outfile$Hora_n), ]
+
+outfile <-with(outfile, expand.grid(unique(DependenciaCD), unique(Pluid), unique(dia), unique(Hora_n))) %>%
+  setNames(c("DependenciaCD", "Pluid", "dia", "Hora_n")) %>%
+  left_join(., outfile, by=c("DependenciaCD", "Pluid", "dia", "Hora_n"))
+
+outfile <- outfile[order(outfile$Pluid, outfile$dia, outfile$Hora_n), ]
 
 for (DEPS in 2:length(tiendas)){
-  aux <- rxImport(paste0(output_lib, "patrones_all_",  tiendas[DEPS] , ".xdf"))
+  aux <- rxImport(paste0(output_lib, "CentralChars_",  tiendas[DEPS] , ".xdf"))
+  aux <-with(aux, expand.grid(unique(DependenciaCD), unique(Pluid), unique(dia), unique(Hora_n))) %>%
+             setNames(c("DependenciaCD", "Pluid", "dia", "Hora_n")) %>%
+             left_join(., aux, by=c("DependenciaCD", "Pluid", "dia", "Hora_n"))
+  
+  aux <- aux[order(aux$Pluid, aux$dia, aux$Hora_n), ]
+  
   outfile <- rbind(outfile, aux)
   print(DEPS)
 }
 
 patrones_all <- rxImport(inData = outfile,
-                        outFile = outfile_patrones,
-                        overwrite = TRUE)
+                         outFile = outfile_patrones,
+                         varsToDrop = c("sd", "m1", "q1", "q2", "q3"),
+                         overwrite = TRUE)
 # ==================== ESCRITURA DE ARCHIVO DE SALIDA DE PATRÓN =====================
 
 # Organizaci?n de formatro de archivo de salida
@@ -95,9 +106,10 @@ dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
 fecha_dia = data.frame(dia = 1:7, diafecha = dias)
 
 outfile <- merge(x = outfile, y = fecha_dia, by = "dia", all.x = TRUE)
-outfile <- subset(outfile, select = c(7, 2, 3, 5, 6))
+outfile <- subset(outfile, select = c(11, 3, 2, 4, 7))
 colnames(outfile) <- c("Fecha", "Pluid", "storeid", "Hora", "Perfil")
 
+outfile[is.na(outfile[, 5]), 5] <- 0
 # Escritura de archivo final
 
 outfile$Fecha <- format(outfile$Fecha, "%Y-%m-%d")
@@ -110,7 +122,6 @@ write.table(outfile, file = paste0(output_lib, "tendencia.csv"), sep=",", row.na
 system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/tendencia.csv')
 
 # ================= Evaluaci?n de los patrones =========================================
-
 
 # ================ ENVIAR E-MAIL DE FINALIZACIÓN DE PROCESO =============================
 

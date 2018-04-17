@@ -256,7 +256,7 @@ RxCharacteristicsPattern <- function (z, name){
   start_dt  <- Sys.time();
   x <- data.table(rxImport(z))
   
-  agrupacion<-c("DependenciaCD", "Pluid", "dia", "Hora")
+  agrupacion<-c("DependenciaCD", "Pluid", "dia", "Hora_n")
   
   x <- x[,.(
     m1 = mean(UnidadesVendidas),
