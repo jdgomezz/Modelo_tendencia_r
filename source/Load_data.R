@@ -58,10 +58,11 @@
     query <- gsub("&cut_registros.", pars[4], query);                  # Número mínimo de registro por plu-dep
     query <- gsub("&cut_ultima_venta", pars[5], query);   # Fecha de última venta realizada
     query <- gsub("&cut_tiempo_vida.", pars[6], query);               # Tiempo de vida mínimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
+    query <- gsub("&cut_proporcion_dias.", pars[10], query);         # Proporción de venta mínima por día (Nro. registros)/días venta
     query <- gsub("&cut_proporcion.", pars[7], query);                 # Proporción de venta mínima (Nro. registros)/(Tiempo de vida)
     query <- gsub("&n_deciles.", pars[8], query);                    # Número de deciles a segmentar la base de datos 
-    
-    
+    query <- gsub("&num_dias.", pars[9], query);                    # Número mínimo de días de venta
+   
     ti <- Sys.time()
     ventas <- td_Xdf(query = query, name = filename, booleano = booleano);
     tf <- Sys.time()

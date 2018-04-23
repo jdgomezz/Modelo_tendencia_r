@@ -13,8 +13,10 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
   cut_proporcion <- pars[[6]] 
   n_deciles <- pars[[7]] 
   booleano <- pars[[8]] 
+  num_dias <- pars[[9]]
+  cut_proporcion_dias <- pars[[10]]
 
-  parametros <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+  parametros <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, num_dias, cut_proporcion_dias)
   
   fileConn<-file(paste0(log_lib, "logs_", tienda, ".txt"), "w")
   
@@ -23,13 +25,14 @@ MainByDep <- function (tienda, Index, query, libs, pars, nth, k_n, memo, y, yo, 
 
   outfile_ventas <- paste0(inSource, 'ventas_', tienda, '.xdf')
    if (loadbool == TRUE){
-      venta <- LoadXdf(query, outfile_ventas, booleano = booleano, pars = parametros)
+      venta <- LoadXdf(file = query, filename = outfile_ventas, booleano = booleano, pars = parametros)
       rxDataStep(inData = venta, 
                  outFile = venta,
                  overwrite = TRUE,
                  transforms = list(Hora_n = as.numeric(hora), 
                  concat = paste0(Pluid, "-", DependenciaCD, "-", dia)))
-   }
+     
+  }
   # Log para confirmar descarga de histórico de ventas hora
   write(paste0("Termina de descargar históricos de venta de tienda ", tienda), file = fileConn, sep = "\n", append = TRUE)
 
@@ -207,8 +210,10 @@ CharsByDep <- function (tienda, query, libs, pars, fileConn, loadbool){
   cut_proporcion <- pars[[6]] 
   n_deciles <- pars[[7]] 
   booleano <- pars[[8]] 
+  num_dias <- pars[[9]]
+  cut_proporcion_dias <- pars[[10]]
   
-  parametros <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles)
+  parametros <- c(tienda, fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, num_dias, cut_proporcion_dias)
   
   fileConn<-file(paste0(log_lib, "logs_", tienda, ".txt"), "w")
   

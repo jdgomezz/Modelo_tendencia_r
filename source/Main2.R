@@ -28,30 +28,29 @@ RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máqu
 # una tabla de datos con formato xdf
 
 fi <- "'2018-01-01'"                         # Fecha inicial
-ff <- "'2018-03-31'"                         # Fecha final
+ff <- "'2018-04-07'"                         # Fecha final
 cut_registros <- 0                          # Número m??nimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
 cut_tiempo_vida <- 30                         # Tiempo de vida m??nimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
 cut_proporcion <- 1                          # Proporción de venta m??nima (Nro. registros)/(Tiempo de vida)
 n_deciles <- 100                             # Nro de deciles a seccionar la muestra
+num_dias <- 30                                 # Nro de días mínimo de ventas a considerar por registro plu-dep
+cut_proporcion_dias <- 0                     # Proporción de venta mínima por días (Nro registros)/(días de venta)
 booleano <- TRUE
 query <- '~/Agotado_en_gondola/querys/query_extraccion_limpieza_v2.txt'
-pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, booleano)
-querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
-#querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL"
-connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
-odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
-dep <- rxImport(odbcDS)$DependenciaCD
-npart <- 40
-delta <- length(dep)%/%npart
-nodes <- 8
+pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_proporcion, n_deciles, booleano, num_dias, cut_proporcion_dias)
+
+#querydep <- "SELECT * FROM bd_ddpo.vtdependencia where FechaCierre IS NULL and DependenciaCD in (41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)"
+#connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
+#odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
+#tiendas <- rxImport(odbcDS)$DependenciaCD
 
 tiendas <- c(41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)
-tiendas <- c(35)
+#tiendas <- c(33)
 nth <- 1
 k_n <- 50
 memo <- '16g'
-nodes <- 2
+nodes <- 8
 
 h2o.removeAll() # Clean slate - just in case the cluster was already running
 
@@ -61,7 +60,18 @@ cl <-makeCluster(nodes)
 registerDoParallel(cl)
 system.time( 
   result <- foreach (i = 1:length(tiendas), .combine='cbind', .export = c('LoadXdf', "RxCharacteristics", "cluster_model", "Mode"), .packages = c("moments", "data.table", "h2o", "plotly")) %dopar% {
-                  patrones_dep <- MainByDep(tiendas[i], (i-1),  query, libs, pars, nth, k_n, memo, y, yo, fileConn, FALSE)
+                  patrones_dep <- MainByDep(tienda = tiendas[i],
+                                            Index = (i-1),  
+                                            query = query, 
+                                            libs = libs, 
+                                            pars = pars, 
+                                            nth = nth, 
+                                            k_n = k_n,
+                                            memo = memo, 
+                                            y = y,
+                                            yo = yo, 
+                                            fileConn = fileConn, 
+                                            loadbool = TRUE)
   }
 )
 stopCluster(cl)
