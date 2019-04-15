@@ -28,7 +28,7 @@ RxComputeContext("RxLocalParallel") # Cambiar contexto de ejecución de la máqu
 # una tabla de datos con formato xdf
 
 fi <- "'2018-01-01'"                         # Fecha inicial
-ff <- "'2018-04-07'"                         # Fecha final
+ff <- "'2018-11-06'"                         # Fecha final
 cut_registros <- 0                          # Número m??nimo de registro por plu-dep
 cut_ultima_venta <- "'2017-11-01'"           # Fecha de última venta realizada
 cut_tiempo_vida <- 30                         # Tiempo de vida m??nimo por plu-dep ABS(Fecha 1ra venta - Fecha última venta)
@@ -44,7 +44,6 @@ pars <- list(fi, ff, cut_registros, cut_ultima_venta, cut_tiempo_vida, cut_propo
 #connectionString <-"Driver=Teradata;DBCNAME=10.2.113.66;UID=jdgomezz;PWD=jdgomezz01;"
 #odbcDS <-RxOdbcData(sqlQuery = querydep,connectionString = connectionString)
 #tiendas <- rxImport(odbcDS)$DependenciaCD
-
 tiendas <- c(41, 54, 75, 33, 35, 31, 568, 4701, 94, 92, 564, 83, 581, 81, 86, 88, 4043, 84, 356, 569)
 #tiendas <- c(33)
 nth <- 1
@@ -101,7 +100,7 @@ dias <- c(Sys.Date()- as.POSIXlt(Sys.Date())$wday,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 3,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 4,
           Sys.Date()- as.POSIXlt(Sys.Date())$wday + 5,
-          Sys.Date()- as.POSIXlt(Sys.Date())$wday + 6)# Primer d?a de la semana
+          Sys.Date()- as.POSIXlt(Sys.Date())$wday + 6) # Primer d?a de la semana
 fecha_dia = data.frame(dia = 1:7, diafecha = dias)
 
 outfile <- merge(x = outfile, y = fecha_dia, by = "dia", all.x = TRUE)
@@ -114,7 +113,7 @@ outfile$Fecha <- format(outfile$Fecha, "%Y-%m-%d")
 outfile$storeid <- as.numeric(as.character(outfile$storeid))
 outfile$Pluid <- as.numeric(as.character(outfile$Pluid))
 outfile$Hora <- as.numeric(as.character(outfile$Hora))
-outfile$Fecha <- as.Date(outfile$Fecha) 
+outfile$Fecha <- as.Date(outfile$Fecha)
 write.table(outfile, file = paste0(output_lib, "tendencia.csv"), sep=",", row.names = FALSE)
 
 system('sshpass -p "hadoop" scp ~/xdf/tendencia.csv hdp_agotadoln@10.2.113.138:/data/LZ/Agotados/Datos/tendencia.csv')

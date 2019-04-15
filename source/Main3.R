@@ -130,7 +130,7 @@ send.mail(from = "jgomezz101@gmail.com",                                        
           smtp = list(host.name = "smtp.gmail.com",                                          # Host del mail
                       port = 465,                                                            # Puerto del host
                       user.name = "jgomezz101@gmail.com",                                    # Usuario que envia
-                      passwd = "N1nt3nd0\""),                                                 # Contrase?a del que envia
+                      passwd = "jn\""),                                                 # Contrase?a del que envia
           ssl = TRUE,
           authenticate = FALSE,                                                              # Autenticar
           send = TRUE,

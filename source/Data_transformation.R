@@ -175,7 +175,6 @@ Probs <-function(xx){
 # Descripción: El presente script se encarga de calcular la distribución de probabilidad
 # Conjunta de un conjunto de datos
 
-
 estimated_dist <- function (x, y, bool){
   dat <- as.matrix(data.frame(x, y))
   Hpi1 <- Hpi(x=dat)
@@ -187,7 +186,6 @@ estimated_dist <- function (x, y, bool){
     plot_ly(x = v, y = u, z= est_dist) %>% add_surface() 
   }
 }
-
 
 RxCharacteristics <- function (z, name, name1, name2){
   start_dt  <- Sys.time();
